@@ -1,2 +1,3 @@
-# nekosuneai-public
-Public Code for NekoSuneAI
+# NekoSuneAI
+
+NekoSuneAI is a VRChat AI BOT
