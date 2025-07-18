@@ -10,7 +10,7 @@ echo Pulling latest code from Git...
 git pull
 
 :: --- Step 2: Check for SoX ---
-echo 🔍 Checking for SoX in tools\sox...
+echo Checking for SoX in tools\sox...
 
 if not exist ".\tools\sox\sox-14-4-1\sox.exe" (
     echo SoX not found. Downloading SoX 14.4.1...
@@ -22,7 +22,7 @@ if not exist ".\tools\sox\sox-14-4-1\sox.exe" (
 )
 
 :: Add SoX to PATH for current session
-set PATH=%CD%\tools\sox\sox-14-4-1;%PATH%
+set "PATH=%CD%\tools\sox\sox-14-4-1;%PATH%"
 
 :: --- Step 3: Install node modules ---
 if not exist node_modules (
