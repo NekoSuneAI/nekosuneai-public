@@ -15,6 +15,7 @@ audio/recognized_audio.wav
 python-portable/
 piper/
 model/
+tools/
 tts_configs/
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
