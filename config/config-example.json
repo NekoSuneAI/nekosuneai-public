@@ -1,55 +1,53 @@
 {
-    "VRCACC": {
-        "username": "EMAIL",
-        "password": "PASS",
-        "twofatoken": "2FA",
-        "OSC_TARGET_ADDRESS": "127.0.0.1",
-        "OSC_TARGET_PORT": "9000",
-        "OSC_READ_PORT": "9001"
+  "VRCACC": {
+    "username": "EMAIL",
+    "password": "PASS",
+    "twofatoken": "2FA",
+    "OSC_TARGET_ADDRESS": "127.0.0.1",
+    "OSC_TARGET_PORT": "9000",
+    "OSC_READ_PORT": "9001"
+  },
+  "addons": {
+    "discord": {
+      "toggle": false,
+      "webhookerror": "",
+      "webhookchat": "",
+      "webhookreply": "",
+      "authbearer": "AUTHTOKEN",
+      "serverid": "DISCORDSERVERID"
     },
-    "addons": {
-        "discord": {
-            "toggle": false,
-            "webhookerror": "",
-            "webhookchat": "",
-            "webhookreply": "",
-            "authbearer": "AUTHTOKEN",
-            "serverid": "DISCORDSERVERID"
-        },
-        "FriendsSystem": {
-            "toggle": true
-        },
-        "AI": {
-	        "toggle": true,
-            "OPENAI": {
-                "apiKey":"",
-                "baseURL": "",
-                "whisperModel": "whisper-medium-q5_0",
-                "gptModel": "mistral-7b-instruct-v0.3",
-                "systemmsg": ""
-            }
-        },
-        "apikey": {
-            "weather": {
-                "key": ""
-            },
-            "timeapi": {
-                "key": ""
-            }
-        },
-        "filters": {
-            "explicit": {
-                "joke": false
-            }
-        },
-        "vrcapi": {
-            "toggles": {
-                "blfr": true,
-                "blscan": true,
-                "wlreq": true
-            },
-            "whitelist": [
-            ]
-        }
+    "FriendsSystem": {
+      "toggle": true
+    },
+    "AI": {
+      "toggle": true,
+      "OPENAI": {
+        "apiKey": "",
+        "baseURL": "",
+        "gptModel": "mistral-7b-instruct-v0.3",
+        "systemmsg": ""
+      }
+    },
+    "apikey": {
+      "weather": {
+        "key": ""
+      },
+      "timeapi": {
+        "key": ""
+      }
+    },
+    "filters": {
+      "explicit": {
+        "joke": false
+      }
+    },
+    "vrcapi": {
+      "toggles": {
+        "blfr": true,
+        "blscan": true,
+        "wlreq": true
+      },
+      "whitelist": []
     }
+  }
 }
