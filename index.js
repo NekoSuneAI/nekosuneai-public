@@ -25,8 +25,8 @@ const PIPER_DIR = 'piper';
 const MODELS_DIR = path.join(PIPER_DIR, 'models');
 
 
-const MODEL_URL = 'https://alphacephei.com/vosk/models/vosk-model-en-us-0.22.zip';
-const ZIP_PATH = config.addons.AI.vaskmodel || "./model/vosk-model-en-us-0.22";
+const MODEL_URL = `https://alphacephei.com/vosk/models/${config.addons.AI.vaskmodel}.zip`;
+const ZIP_PATH = `./model/${config.addons.AI.vaskmodel}.zip`;
 const EXTRACT_PATH = './model/';
 
 // Voice model download URLs (from Hugging Face)
@@ -50,12 +50,13 @@ const LANGUAGE_MAP = {
 
 // Unzip the downloaded model into ./model/
 async function extractZip(zipPath, extractTo) {
-    console.log(`Extracting ${zipPath} to ${extractTo}`);
-    await pipelineAsync(
-        fs.open(zipPath, 'r').then(f => f.createReadStream()),
-        unzipper.Extract({ path: extractTo })
-    );
-    console.log('Extraction complete.');
+  const fszip = require('fs');
+  console.log(`Extracting ${zipPath} to ${extractTo}`);
+  await pipelineAsync(
+    fszip.createReadStream(zipPath),
+    unzipper.Extract({ path: extractTo })
+  );
+  console.log('Extraction complete.');
 }
 
 // Helper function to render a progress bar
