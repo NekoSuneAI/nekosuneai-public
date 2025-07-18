@@ -18,10 +18,10 @@ const { playSound } = require("../AddonsModules/Audios/AudioSounds");
 const fs = require("fs");
 const path = require("path");
 const record = require("node-record-lpcm16");
-const vosk = require('vosk')
+const vosk = require("vosk");
 const { config } = require("../../config");
-const MODEL_PATH = config.addons.AI.vaskmodel || "./model/vosk-model-en-us-0.22";
-
+const MODEL_PATH =
+  config.addons.AI.vaskmodel || "./model/vosk-model-en-us-0.22";
 
 let model = null;
 
@@ -32,7 +32,10 @@ async function voskLoader() {
   if (model !== null) return model;
 
   if (!fs.existsSync(MODEL_PATH)) {
-    console.error("❌ Vosk model still not found after attempted download:", MODEL_PATH);
+    console.error(
+      "❌ Vosk model still not found after attempted download:",
+      MODEL_PATH
+    );
     process.exit(1);
   }
 
@@ -101,75 +104,87 @@ function startRecordingAndRunDeepSpeech() {
 
 // Function to run DeepSpeech and delete the audio file.
 async function performSpeechRecognition(audioFile) {
-    sendMSGOSC(`Thinking.`);
-    
-    try {
-        const wfReader = fs.createReadStream(audioFile, { highWaterMark: 4096 });
+  sendMSGOSC(`Thinking.`);
 
-        const model = await voskLoader();
+  try {
+    const wfReader = fs.createReadStream(audioFile, { highWaterMark: 4096 });
 
-        const rec = new vosk.Recognizer({ model, sampleRate: 16000 });
-        rec.setMaxAlternatives(1);
-        rec.setWords(true);
+    const model = await voskLoader();
 
-        wfReader.on('data', (chunk) => {
-            rec.acceptWaveform(chunk);
-        });
+    const rec = new vosk.Recognizer({ model, sampleRate: 16000 });
+    rec.setMaxAlternatives(1);
+    rec.setWords(true);
 
-        const result = await new Promise((resolve, reject) => {
-            wfReader.on('end', () => {
-                const finalResult = rec.finalResult();
-                rec.free();
-                resolve(finalResult);
-            });
+    wfReader.on("data", chunk => {
+      rec.acceptWaveform(chunk);
+    });
 
-            wfReader.on('error', (err) => {
-                rec.free();
-                reject(err);
-            });
-        });
-        if (result.alternatives && result.alternatives[0].text) {
-          console.log('[Vosk Local] Recognized text:', result.alternatives[0].text);
-          const resulttt = [
-            {
-              text: result.alternatives[0].text
-            }
-          ];
-          writeToLogFile("[Vosk Local] Recognized text: " + resulttt[0].text);
-          sendMSGOSC(`Thinking...`);
-          sendToWebhookchat(result.alternatives[0].text).then(async meep => {
-            if (containsBannedWord(resulttt[0].text)) {
-              BadWordDetected(audioFile, meep.messageid);
-            } else {
-              const SoundboardResp = await playSound(audioFile, resulttt);
-              console.log("[SoundboardResp]", SoundboardResp.resp);
-              if (SoundboardResp.resp == "NO MATCH DATA!") {
-                await RunCommands(audioFile, resulttt, meep.messageid);
-              }
-            }
-         });
-        } else {
-          //const error = await response.text();
-          //console.log(`Server error: ${error}`);
-          console.log("No audio data to recognize.");
-          writeToLogFile("No audio data to recognize");
-          // Delete the renamed audio file after recognition.
-          fs.unlinkSync(audioFile);
-          // Start recording and running DeepSpeech again.
-          await sleep(5000);
-          startRecordingAndRunDeepSpeech();
+    const result = await new Promise((resolve, reject) => {
+      wfReader.on("end", () => {
+        const finalResult = rec.finalResult();
+        rec.free();
+        resolve(finalResult);
+      });
+
+      wfReader.on("error", err => {
+        rec.free();
+        reject(err);
+      });
+    });
+    if (result.alternatives && result.alternatives[0].text) {
+      console.log("[Vosk Local] Recognized text:", result.alternatives[0].text);
+      const resulttt = [
+        {
+          text: result.alternatives[0].text
         }
-    } catch (error) {
-      console.error("Error:", error.message);
+      ];
+      writeToLogFile("[Vosk Local] Recognized text: " + resulttt[0].text);
+      sendMSGOSC(`Thinking...`);
+      if (config.addons.discord.toggle) {
+        sendToWebhookchat(result.alternatives[0].text).then(async meep => {
+          if (containsBannedWord(resulttt[0].text)) {
+            BadWordDetected(audioFile, meep.messageid);
+          } else {
+            const SoundboardResp = await playSound(audioFile, resulttt);
+            console.log("[SoundboardResp]", SoundboardResp.resp);
+            if (SoundboardResp.resp == "NO MATCH DATA!") {
+              await RunCommands(audioFile, resulttt, meep.messageid);
+            }
+          }
+        });
+      } else {
+        if (containsBannedWord(resulttt[0].text)) {
+          BadWordDetected(audioFile, null);
+        } else {
+          const SoundboardResp = await playSound(audioFile, resulttt);
+          console.log("[SoundboardResp]", SoundboardResp.resp);
+          if (SoundboardResp.resp == "NO MATCH DATA!") {
+            await RunCommands(audioFile, resulttt, null);
+          }
+        }
+      }
+    } else {
+      //const error = await response.text();
+      //console.log(`Server error: ${error}`);
       console.log("No audio data to recognize.");
+      writeToLogFile("No audio data to recognize");
       // Delete the renamed audio file after recognition.
-      // TODO: issues with it keep say not unlink from the audiofiles need to look into
-      //fs.unlinkSync(audioFile);
-
+      fs.unlinkSync(audioFile);
       // Start recording and running DeepSpeech again.
       await sleep(5000);
       startRecordingAndRunDeepSpeech();
     }
+  } catch (error) {
+    console.error("Error:", error.message);
+    console.log("No audio data to recognize.");
+    // Delete the renamed audio file after recognition.
+    // TODO: issues with it keep say not unlink from the audiofiles need to look into
+    //fs.unlinkSync(audioFile);
+
+    // Start recording and running DeepSpeech again.
+    await sleep(5000);
+    startRecordingAndRunDeepSpeech();
+  }
 }
 
 module.exports = {

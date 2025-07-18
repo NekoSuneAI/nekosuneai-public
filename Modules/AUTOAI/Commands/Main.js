@@ -106,7 +106,7 @@ async function RunCommands(audioFile, result, messageid) {
         result[0].text,
         config.addons.AI.OPENAI.gptModel
       );
-      console.log('[gpt api dev]', response)
+      //console.log('[gpt api dev]', response)
       if (response.status == 200) {
         console.log("[ChatGPT Local] Recognized text:", response.content);
         writeToLogFile("[ChatGPT Local] Recognized text: " + response.content);
