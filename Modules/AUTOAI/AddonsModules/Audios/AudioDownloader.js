@@ -6,6 +6,7 @@ const {
 } = require("../../VOICEModules/LogFiles");
 
 const { config } = require("../../../config");
+const wav = require("wav");
 
 async function DownloadFile(source, mp3Url, filepath, filename) {
   const axios = require("axios");
@@ -116,7 +117,26 @@ function playAudioSound(audioPath) {
   }
 }
 
+function playAudioTTS(audioPath) {
+  const fs = require("fs");
+  const Speaker = require("speaker");
+  
+  if (!audioPath) return;
+
+  const fileStream = fs.createReadStream(audioPath);
+  const reader = new wav.Reader();
+
+  // This will be fired when the WAV header is parsed
+  reader.on("format", function (format) {
+    const speaker = new Speaker(format);
+    reader.pipe(speaker);
+  });
+
+  fileStream.pipe(reader);
+}
+
 module.exports = {
   DownloadFile,
-  playAudioSound
+  playAudioSound,
+  playAudioTTS
 };

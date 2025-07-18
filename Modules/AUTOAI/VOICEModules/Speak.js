@@ -1,5 +1,5 @@
 const { sendMSGOSC } = require("../AddonsModules/OSC/Send");
-const { playAudioSound } = require("../AddonsModules/Audios/AudioDownloader");
+const { playAudioTTS } = require("../AddonsModules/Audios/AudioDownloader");
 
 const { writeToLogFile } = require("./LogFiles");
 
@@ -109,7 +109,7 @@ async function readAndPrintSentences(sentences, audioFile, messageid) {
       config.addons.AI.voice || "en_US-lessac-medium",
       `audio/aiout_${Date.now()}.wav`
     );
-    playAudioSound(audioFileAi);
+    playAudioTTS(audioFileAi);
     currentPage++;
   }
 

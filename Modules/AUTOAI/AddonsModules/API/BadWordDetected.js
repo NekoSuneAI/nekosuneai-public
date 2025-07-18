@@ -3,7 +3,7 @@ const { badwords } = require("../../../config");
 const { writeToLogFile } = require("../../VOICEModules/LogFiles");
 
 const { generateTts } = require("../../VOICEModules/Speak");
-const { playAudioSound } = require("../Audios/AudioDownloader");
+const { playAudioTTS } = require("../Audios/AudioDownloader");
 
 const fs = require("fs");
 
@@ -50,7 +50,7 @@ async function BadWordDetected(audioFile, messageid) {
       config.addons.AI.voice || "en_US-lessac-medium",
       `audio/aiout_${Date.now()}.wav`
     );
-    playAudioSound(audioFileAi);
+    playAudioTTS(audioFileAi);
     fs.unlinkSync(audioFile);
     startRecordingAndRunDeepSpeech();
     resolve();
