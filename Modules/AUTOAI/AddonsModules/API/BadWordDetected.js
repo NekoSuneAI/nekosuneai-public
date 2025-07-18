@@ -2,7 +2,9 @@ const { badwords } = require("../../../config");
 
 const { writeToLogFile } = require("../../VOICEModules/LogFiles");
 
-const say = require("say"); // Import the 'say' package
+const { generateTts } = require("../../VOICEModules/Speak");
+const { playAudioSound } = require("../Audios/AudioDownloader");
+
 const fs = require("fs");
 
 function findWord(word, str) {
@@ -42,20 +44,15 @@ async function BadWordDetected(audioFile, messageid) {
     ).then(datauwu => {
       console.log(datauwu);
     });
-    say.speak(
+    const audioFileAi = await generateTts(
       "This infomation is Forbidden access by my Creator, Please follow VRChat Terms of Service.",
-      "Cortana",
-      1.0,
-      err => {
-        if (err) {
-          reject(err);
-        } else {
-          fs.unlinkSync(audioFile);
-          startRecordingAndRunDeepSpeech();
-          resolve();
-        }
-      }
+      config.voice || "en_US-lessac-medium",
+      `audios/aiout_${Date.now()}.wav`
     );
+    playAudioSound(audioFileAi);
+    fs.unlinkSync(audioFile);
+    startRecordingAndRunDeepSpeech();
+    resolve();
   });
 }
 
