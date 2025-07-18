@@ -19,7 +19,7 @@ async function generateTts(
     return null;
   }
 
-  const voice = config.voice || "en_US-lessac-medium";
+  const voice = config.addons.AI.voice || "en_US-lessac-medium";
   const modelPath = path.resolve(
     config.modelPath || `./piper/models/${voice}.onnx`
   );
@@ -71,7 +71,7 @@ async function readAndPrintSentences(sentences, audioFile, messageid) {
     sendMSGOSC(`${sentence} \n⏪${currentPage}/${totalPages}⏩`);
     const audioFileAi = await generateTts(
       sentence,
-      config.voice || "en_US-lessac-medium",
+      config.addons.AI.voice || "en_US-lessac-medium",
       `audios/aiout_${Date.now()}.wav`
     );
     playAudioSound(audioFileAi);

@@ -19,7 +19,8 @@ const fs = require("fs");
 const path = require("path");
 const record = require("node-record-lpcm16");
 const vosk = require('vosk')
-const MODEL_PATH = './model/vosk-model-en-us-0.22';
+const { config } = require("../../config");
+const MODEL_PATH = config.addons.AI.vaskmodel || "./model/vosk-model-en-us-0.22";
 
 // Load model once at startup
 if (!fs.existsSync(MODEL_PATH)) {

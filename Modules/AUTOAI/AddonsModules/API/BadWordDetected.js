@@ -46,7 +46,7 @@ async function BadWordDetected(audioFile, messageid) {
     });
     const audioFileAi = await generateTts(
       "This infomation is Forbidden access by my Creator, Please follow VRChat Terms of Service.",
-      config.voice || "en_US-lessac-medium",
+      config.addons.AI.voice || "en_US-lessac-medium",
       `audios/aiout_${Date.now()}.wav`
     );
     playAudioSound(audioFileAi);
