@@ -22,15 +22,25 @@ const vosk = require('vosk')
 const { config } = require("../../config");
 const MODEL_PATH = config.addons.AI.vaskmodel || "./model/vosk-model-en-us-0.22";
 
-// Load model once at startup
-if (!fs.existsSync(MODEL_PATH)) {
-  console.error("❌ Vosk model not found at:", MODEL_PATH);
-  process.exit(1);
-}
 
-vosk.setLogLevel(0);
-model = new vosk.Model(MODEL_PATH);
-console.log("✅ Vosk model loaded.");
+let model = null;
+
+async function voskLoader() {
+  if (!config.addons.AI.toggle) return;
+
+  // Only load model if not already loaded
+  if (model !== null) return model;
+
+  if (!fs.existsSync(MODEL_PATH)) {
+    console.error("❌ Vosk model still not found after attempted download:", MODEL_PATH);
+    process.exit(1);
+  }
+
+  vosk.setLogLevel(0);
+  model = new vosk.Model(MODEL_PATH);
+  console.log("✅ Vosk model loaded.");
+  return model;
+}
 
 // Constants.
 const DIRECTORY = "./audio";
@@ -96,6 +106,8 @@ async function performSpeechRecognition(audioFile) {
     try {
         const wfReader = fs.createReadStream(audioFile, { highWaterMark: 4096 });
 
+        const model = await voskLoader();
+
         const rec = new vosk.Recognizer({ model, sampleRate: 16000 });
         rec.setMaxAlternatives(1);
         rec.setWords(true);
@@ -118,21 +130,21 @@ async function performSpeechRecognition(audioFile) {
         });
         if (result.alternatives && result.alternatives[0].text) {
           console.log('[Vosk Local] Recognized text:', result.alternatives[0].text);
-          const result = [
+          const resulttt = [
             {
               text: result.alternatives[0].text
             }
           ];
-          writeToLogFile("[Vosk Local] Recognized text: " + result[0].text);
+          writeToLogFile("[Vosk Local] Recognized text: " + resulttt[0].text);
           sendMSGOSC(`Thinking...`);
           sendToWebhookchat(result.alternatives[0].text).then(async meep => {
-            if (containsBannedWord(result[0].text)) {
+            if (containsBannedWord(resulttt[0].text)) {
               BadWordDetected(audioFile, meep.messageid);
             } else {
-              const SoundboardResp = await playSound(audioFile, result);
+              const SoundboardResp = await playSound(audioFile, resulttt);
               console.log("[SoundboardResp]", SoundboardResp.resp);
               if (SoundboardResp.resp == "NO MATCH DATA!") {
-                await RunCommands(audioFile, result, meep.messageid);
+                await RunCommands(audioFile, resulttt, meep.messageid);
               }
             }
          });
@@ -161,5 +173,6 @@ async function performSpeechRecognition(audioFile) {
 }
 
 module.exports = {
-  startRecordingAndRunDeepSpeech
+  startRecordingAndRunDeepSpeech,
+  voskLoader
 };

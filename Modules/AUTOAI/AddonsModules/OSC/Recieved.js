@@ -67,7 +67,7 @@ async function handleOscMessage(address, args) {
           "Please do not touch me there, thats my privacy part of my body that no one not allowed touch other then my master.";
 
         sendMSGOSC(msgchest);
-        const audioFileAi = await generateTts(msgchest, config.addons.AI.voice || "en_US-lessac-medium", `audios/aiout_${Date.now()}.wav`);
+        const audioFileAi = await generateTts(msgchest, config.addons.AI.voice || "en_US-lessac-medium", `audio/aiout_${Date.now()}.wav`);
         playAudioSound(audioFileAi);
       }
       break;

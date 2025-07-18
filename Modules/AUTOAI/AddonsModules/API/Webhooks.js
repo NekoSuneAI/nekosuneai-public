@@ -146,7 +146,7 @@ async function sendToWebhookchatResponse(response, messageid) {
           } else {
             await axios
               .post(
-                `${config.addons.discord.webhookreply}${messageid}/reply`,
+                `${config.addons.discord.webhookreply}`,
                 { content: response, isEmbed: false },
                 headers
               )

@@ -31,6 +31,7 @@ async function BadWordDetected(audioFile, messageid) {
   const { sleep } = require("../ShortCuts");
 
   const { sendToWebhookchatResponse } = require("./Webhooks");
+  const { config } = require("../../../config");
 
   return new Promise(async (resolve, reject) => {
     sendMSGOSC(`[FORBIDDEN ACCESS]`);
@@ -47,7 +48,7 @@ async function BadWordDetected(audioFile, messageid) {
     const audioFileAi = await generateTts(
       "This infomation is Forbidden access by my Creator, Please follow VRChat Terms of Service.",
       config.addons.AI.voice || "en_US-lessac-medium",
-      `audios/aiout_${Date.now()}.wav`
+      `audio/aiout_${Date.now()}.wav`
     );
     playAudioSound(audioFileAi);
     fs.unlinkSync(audioFile);

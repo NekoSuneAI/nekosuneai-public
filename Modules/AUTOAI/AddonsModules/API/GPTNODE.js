@@ -1,84 +1,76 @@
 const { config } = require("../../../config");
 
-async function RESPGPT(prompt, model) {
-  const OpenAI = require("openai");
-  const openaiself = new OpenAI({
-    apiKey: `${config.addons.AI.OPENAI.apiKey}`,
-    baseURL: `${config.addons.AI.OPENAI.baseURL}`
-  });
+const axios = require("axios");
 
+async function askGPT(endpoint, method = "POST", body = null) {
+  if (method === "POST") {
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${config.addons.AI.OPENAI.apiKey}`
+    };
+    const res = await axios.post(
+      `${config.addons.AI.OPENAI.baseURL}${endpoint}`,
+      body,
+      { headers }
+    );
+    return res.data.choices[0].message;
+  } else if (method === "GET") {
+    const res = await axios.get(`${config.addons.AI.OPENAI.baseURL}${endpoint}`, {
+      headers: {
+        Authorization: `Bearer ${config.addons.AI.OPENAI.apiKey}`
+      }
+    });
+    return res.data;
+  }
+}
+
+async function RESPGPT(prompt, model) {
   try {
-    const response = await openaiself.chat.completions.create({
-      model: `${model}`,
+    const awser = await askGPT("/chat/completions", "POST", {
+      model: model,
       messages: [
-        {
-          role: "system",
-          content: `${config.addons.AI.OPENAI.systemmsg}`
-        },
-        {
-          role: "user",
-          content: prompt
-        }
+        { role: "system", content: config.addons.AI.OPENAI.systemmsg },
+        { role: "user", content: prompt }
       ],
-      temperature: 0.5,
-      max_tokens: 1000
+      stream: false
     });
 
-    const awser = response.choices[0].message;
-
-    //console.log('[RESPGPT dev]', awser)
+    // Check for rate limit
+    if (awser.content === "Request failed with status code 429") {
+      return {
+        status: 429,
+        message: "Too many Requests from this IP, please try again after 5 minutes"
+      };
+    }
 
     // Split the text into words
     const sentences = awser.content.split(/\s+/);
-
-    // Initialize an empty array to store the result
     const filteredSentences = [];
-    // Initialize a variable to track the current position in the text
-    let currentPosition = 0;
 
-    // Iterate over the words
     for (const word of sentences) {
-      // Check if adding the current word exceeds the limit (144 characters)
       if (
         filteredSentences.length === 0 ||
-        filteredSentences[filteredSentences.length - 1].length +
-          word.length +
-          1 >
-          129
+        filteredSentences[filteredSentences.length - 1].length + word.length + 1 > 129
       ) {
-        // If it does, start a new string in the array
         filteredSentences.push(word);
-        currentPosition = word.length;
       } else {
-        // If it doesn't, add the word to the current string in the array
         filteredSentences[filteredSentences.length - 1] += " " + word;
-        currentPosition += word.length + 1;
       }
     }
 
-    if (awser.content == "Request failed with status code 429") {
-      return {
-        status: 429,
-        message:
-          "Too many Requests from this IP, please try again after 5 minutes"
-      };
-    } else {
-      var responsejson = {
-        status: 200,
-        role: "assistant",
-        content: awser.content,
-        contentarray: filteredSentences
-      };
-      return responsejson;
-    }
+    return {
+      status: 200,
+      role: "assistant",
+      content: awser.content,
+      contentarray: filteredSentences
+    };
+
   } catch (error) {
-    var responsejson = {
+    return {
       status: 504,
       role: "assistant",
       content: "Request timed out"
     };
-    //console.log('error', error);
-    return responsejson;
   }
 }
 

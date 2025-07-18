@@ -21,6 +21,8 @@
     },
     "AI": {
       "toggle": true,
+      "voice": "en_US-lessac-medium",
+      "vaskmodel": "./model/vosk-model-en-us-0.22",
       "OPENAI": {
         "apiKey": "",
         "baseURL": "",

@@ -72,7 +72,7 @@ async function DownloadFile(source, mp3Url, filepath, filename) {
     const audioFileAi = generateTts(
       `This Invalid Command for Audio, Please say or stop with song name or meme number`,
       config.addons.AI.voice || "en_US-lessac-medium",
-      `audios/aiout_${Date.now()}.wav`
+      `audio/aiout_${Date.now()}.wav`
     );
     playAudioSound(audioFileAi);
   }
