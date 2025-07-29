@@ -41,10 +41,10 @@ const { writeToLogFile } = require("../VOICEModules/LogFiles");
 const e = require("express");
 
 async function RunCommands(audioFile, result, messageid) {
-  switch (checkCondition(result[0].text)) {
+  switch (checkCondition(result[0].text.replace(config.addons.AI.onwakeword.toLowerCase(), ''))) {
     case "timeQuery":
       const { TimezonesGrabber } = require("../AddonsModules/API/Timezones");
-      var originalText = result[0].text.toLowerCase();
+      var originalText = result[0].text.replace(config.addons.AI.onwakeword.toLowerCase(), '').toLowerCase();
       // Example usage:
       TimezonesGrabber(originalText)
         .then(resp => {
@@ -70,7 +70,7 @@ async function RunCommands(audioFile, result, messageid) {
         readAndPrintSentences(responsetext, audioFile, messageid);
       } else {
         const { WeatherGrabber } = require("./../AddonsModules/API/Weathers");
-        var originalText = result[0].text.toLowerCase();
+        var originalText = result[0].text.replace(config.addons.AI.onwakeword.toLowerCase(), '').toLowerCase();
         WeatherGrabber(originalText)
           .then(resp => {
             console.log(resp);
@@ -103,7 +103,7 @@ async function RunCommands(audioFile, result, messageid) {
         sendToWebhookchatResponse
       } = require("../AddonsModules/API/Webhooks");
       const response = await RESPGPT(
-        result[0].text,
+        result[0].text.replace(config.addons.AI.onwakeword.toLowerCase(), ''),
         config.addons.AI.OPENAI.gptModel
       );
       //console.log('[gpt api dev]', response)

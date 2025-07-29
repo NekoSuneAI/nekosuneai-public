@@ -137,29 +137,52 @@ async function performSpeechRecognition(audioFile) {
           text: result.alternatives[0].text
         }
       ];
+
       writeToLogFile("[Vosk Local] Recognized text: " + resulttt[0].text);
       sendMSGOSC(`Thinking...`);
       if (config.addons.discord.toggle) {
-        sendToWebhookchat(result.alternatives[0].text).then(async meep => {
-          if (containsBannedWord(resulttt[0].text)) {
-            BadWordDetected(audioFile, meep.messageid);
+        const recognizedText = resulttt[0].text.toLowerCase(); // case-insensitive check
+        if (recognizedText.includes(config.addons.AI.onwakeword.toLowerCase())) {
+          console.log(`Wake command "${config.addons.AI.onwakeword.toLowerCase()}" detected!`);
+          // start your action here
+
+          sendToWebhookchat(result.alternatives[0].text.replace(config.addons.AI.onwakeword.toLowerCase(), '')).then(async meep => {
+            if (containsBannedWord(resulttt[0].text.replace(config.addons.AI.onwakeword.toLowerCase(), ''))) {
+              BadWordDetected(audioFile, meep.messageid);
+            } else {
+              const SoundboardResp = await playSound(audioFile, resulttt);
+              console.log("[SoundboardResp]", SoundboardResp.resp);
+              if (SoundboardResp.resp == "NO MATCH DATA!") {
+                await RunCommands(audioFile, resulttt, meep.messageid);
+              }
+            }
+          });
+        } else {
+          console.log(`Wake command "${config.addons.AI.onwakeword.toLowerCase()}" Not Detected!`);
+          fs.unlinkSync(audioFile);
+          // Start recording and running DeepSpeech again.
+          startRecordingAndRunDeepSpeech();
+        }
+      } else {
+        const recognizedText = resulttt[0].text.toLowerCase(); // case-insensitive check
+        if (recognizedText.includes('jarvis')) {
+          console.log(`Wake command "${config.addons.AI.onwakeword.toLowerCase()}" detected!`);
+          // start your action here
+
+          if (containsBannedWord(resulttt[0].text.replace(config.addons.AI.onwakeword.toLowerCase(), ''))) {
+            BadWordDetected(audioFile, null);
           } else {
             const SoundboardResp = await playSound(audioFile, resulttt);
             console.log("[SoundboardResp]", SoundboardResp.resp);
             if (SoundboardResp.resp == "NO MATCH DATA!") {
-              await RunCommands(audioFile, resulttt, meep.messageid);
+              await RunCommands(audioFile, resulttt, null);
             }
           }
-        });
-      } else {
-        if (containsBannedWord(resulttt[0].text)) {
-          BadWordDetected(audioFile, null);
         } else {
-          const SoundboardResp = await playSound(audioFile, resulttt);
-          console.log("[SoundboardResp]", SoundboardResp.resp);
-          if (SoundboardResp.resp == "NO MATCH DATA!") {
-            await RunCommands(audioFile, resulttt, null);
-          }
+          console.log(`Wake command "${config.addons.AI.onwakeword.toLowerCase()}" Not Detected!`);
+          fs.unlinkSync(audioFile);
+          // Start recording and running DeepSpeech again.
+          startRecordingAndRunDeepSpeech();
         }
       }
     } else {

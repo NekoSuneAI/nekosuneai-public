@@ -2,8 +2,10 @@ function normalizeText(text) {
   return text.toLowerCase().replace(/[?.,!]/g, "").trim();
 }
 
+const { config } = require("../../../config");
+
 function playSound(audioFile, result) {
-  const normalizedText = normalizeText(result[0].text);
+  const normalizedText = normalizeText(result[0].text.replace(config.addons.AI.onwakeword.toLowerCase(), ''));
 
   switch (normalizedText) {
     case "thug life":
