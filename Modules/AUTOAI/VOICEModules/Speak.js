@@ -8,7 +8,7 @@ const { config } = require("../../config");
 const fs = require("fs");
 const readline = require('readline');
 const path = require("path");
-const { spawn } = require("child_process");
+const { spawn, exec } = require("child_process");
 const logger = console;
 
 // Store TTS configurations and user preferences
