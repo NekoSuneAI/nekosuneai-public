@@ -40,7 +40,7 @@ async function generateTts(
   provider,
   outputFile = `audio/output_${Date.now()}.wav`
 ) {
-  const apiUrl = 'http://localhost:3000/tts'; // Adjust if needed
+  const apiUrl = 'http://100.127.25.47:3000/tts'; // Adjust if needed
 
   // Create the request body
   const payload = {

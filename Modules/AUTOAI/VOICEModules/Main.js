@@ -84,7 +84,7 @@ async function transcribeViaApi(audioFile) {
   form.append('audio', fs.createReadStream(audioFile)); // same field name as multer expects
 
   try {
-    const response = await fetch('http://localhost:3000/stt', {
+    const response = await fetch('http://100.127.25.47:3000/stt', {
       method: 'POST',
       body: form,
       headers: form.getHeaders()
