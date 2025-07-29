@@ -38,7 +38,7 @@ function startRecordingAndRunDeepSpeech() {
   const recorder = record.record({
     sampleRate: 16000,
     endOnSilence: true,
-    recorder: "sox",
+    recorder: "arecord",
     device: 'plughw:2,0' // adjust based on `arecord -l` output
   });
   const fileStream = fs.createWriteStream(audioFile, {
