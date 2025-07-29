@@ -37,7 +37,7 @@ function startRecordingAndRunDeepSpeech() {
   // Initialize the audio recorder (replace with your actual initialization logic)
   const recorder = record.record({
     sampleRate: 16000,
-    endOnSilence: true,
+    endOnSilence: false,
     recorder: "arecord",
     device: "hw:2,0"
   });
