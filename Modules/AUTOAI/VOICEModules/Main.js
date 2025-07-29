@@ -18,31 +18,9 @@ const { playSound } = require("../AddonsModules/Audios/AudioSounds");
 const fs = require("fs");
 const path = require("path");
 const record = require("node-record-lpcm16");
-const vosk = require("vosk");
+const fetch = require('node-fetch');
+const FormData = require('form-data');
 const { config } = require("../../config");
-const MODEL_PATH = `./model/${config.addons.AI.vaskmodel}`;
-
-let model = null;
-
-async function voskLoader() {
-  if (!config.addons.AI.toggle) return;
-
-  // Only load model if not already loaded
-  if (model !== null) return model;
-
-  if (!fs.existsSync(MODEL_PATH)) {
-    console.error(
-      "❌ Vosk model still not found after attempted download:",
-      MODEL_PATH
-    );
-    process.exit(1);
-  }
-
-  vosk.setLogLevel(0);
-  model = new vosk.Model(MODEL_PATH);
-  console.log("✅ Vosk model loaded.");
-  return model;
-}
 
 // Constants.
 const DIRECTORY = "./audio";
@@ -101,40 +79,45 @@ function startRecordingAndRunDeepSpeech() {
     .pipe(fileStream);
 }
 
+async function transcribeViaApi(audioFile) {
+  const form = new FormData();
+  form.append('audio', fs.createReadStream(audioFile)); // same field name as multer expects
+
+  try {
+    const response = await fetch('http://localhost:3000/stt', {
+      method: 'POST',
+      body: form,
+      headers: form.getHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error(`STT API failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    if (data.transcript) {
+      return data;
+    } else {
+      throw new Error('No transcript returned from STT API');
+    }
+  } catch (err) {
+    console.error('STT API error:', err);
+    throw err;
+  }
+}
+
 // Function to run DeepSpeech and delete the audio file.
 async function performSpeechRecognition(audioFile) {
   sendMSGOSC(`Thinking.`);
 
   try {
-    const wfReader = fs.createReadStream(audioFile, { highWaterMark: 4096 });
-
-    const model = await voskLoader();
-
-    const rec = new vosk.Recognizer({ model, sampleRate: 16000 });
-    rec.setMaxAlternatives(1);
-    rec.setWords(true);
-
-    wfReader.on("data", chunk => {
-      rec.acceptWaveform(chunk);
-    });
-
-    const result = await new Promise((resolve, reject) => {
-      wfReader.on("end", () => {
-        const finalResult = rec.finalResult();
-        rec.free();
-        resolve(finalResult);
-      });
-
-      wfReader.on("error", err => {
-        rec.free();
-        reject(err);
-      });
-    });
-    if (result.alternatives && result.alternatives[0].text) {
-      console.log("[Vosk Local] Recognized text:", result.alternatives[0].text);
+    const result = await transcribeViaApi(audioFile);
+    if (result && result.transcript) {
+      console.log("[Vosk Local] Recognized text:", result.transcript);
       const resulttt = [
         {
-          text: result.alternatives[0].text
+          text: result.transcript
         }
       ];
 

@@ -28,6 +28,7 @@
     "mysql2": "^3.7.1",
     "node-2fa": "^2.0.3",
     "node-audiorecorder": "^3.0.0",
+    "node-fetch": "^1.7.3",
     "node-osc": "^9.0.1",
     "node-record-lpcm16": "^1.0.1",
     "openai": "^4.26.0",

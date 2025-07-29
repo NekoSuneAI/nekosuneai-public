@@ -6,10 +6,8 @@ const { writeToLogFile } = require("./LogFiles");
 const { config } = require("../../config");
 
 const fs = require("fs");
-const readline = require('readline');
 const path = require("path");
-const { spawn, exec } = require("child_process");
-const logger = console;
+const fetch = require('node-fetch');
 
 // Store TTS configurations and user preferences
 const ttsConfigs = {};
@@ -37,46 +35,45 @@ async function loadTtsConfigs() {
   }
 }
 
-// Generate TTS audio using piper-tts
 async function generateTts(
   text,
   provider,
   outputFile = `audio/output_${Date.now()}.wav`
-) {;
-  const configstt = require(`../../../tts_configs/${provider}.json`);
-  if (!configstt) {
-    logger.error(`No TTS config found for provider: ${provider}`);
-    return null;
+) {
+  const apiUrl = 'http://localhost:3000/tts'; // Adjust if needed
+
+  // Create the request body
+  const payload = {
+    text: text,
+    voice: provider || 'en_US-lessac-medium'
+  };
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`TTS API error: ${response.statusText}`);
+    }
+
+    // Pipe response to outputFile
+    const fileStream = fs.createWriteStream(outputFile);
+    await new Promise((resolve, reject) => {
+      response.body.pipe(fileStream);
+      response.body.on('error', reject);
+      fileStream.on('finish', resolve);
+    });
+
+    return outputFile;
+  } catch (err) {
+    console.error('TTS API failed:', err);
+    throw err;
   }
-
-  const voice = provider || "en_US-lessac-medium";
-  const modelPath = path.resolve(
-    configstt.modelPath || `./piper/models/${voice}.onnx`
-  );
-
-  return new Promise((resolve, reject) => {
-    const args = [
-      "-m",
-      "piper",
-      "--model",
-      modelPath,
-      "--output_file",
-      outputFile
-    ];
-    const child = spawn(configstt.pythonPath, args, {
-      stdio: ["pipe", "inherit", "inherit"]
-    });
-
-    child.stdin.write(text + "\n");
-    child.stdin.end();
-
-    child.on("close", code => {
-      if (code === 0) resolve(outputFile);
-      else reject(new Error(`Piper exited with code ${code}`));
-    });
-
-    child.on("error", reject);
-  });
 }
 
 function stripEmojis(text) {
