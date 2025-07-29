@@ -37,9 +37,8 @@ function startRecordingAndRunDeepSpeech() {
   // Initialize the audio recorder (replace with your actual initialization logic)
   const recorder = record.record({
     sampleRate: 16000,
-    endOnSilence: false,
-    recorder: "arecord",
-    device: "hw:2,0"
+    endOnSilence: true,
+    recorder: "arecord"
   });
   const fileStream = fs.createWriteStream(audioFile, {
     encoding: "binary"
