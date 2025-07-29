@@ -23,6 +23,7 @@
       "toggle": true,
       "voice": "en_US-lessac-medium",
       "vaskmodel": "vosk-model-en-us-0.22",
+      "onwakeword": "jarvis",
       "OPENAI": {
         "apiKey": "",
         "baseURL": "",
