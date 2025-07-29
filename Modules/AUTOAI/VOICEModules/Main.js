@@ -194,5 +194,4 @@ async function performSpeechRecognition(audioFile) {
 
 module.exports = {
   startRecordingAndRunDeepSpeech,
-  voskLoader
 };
