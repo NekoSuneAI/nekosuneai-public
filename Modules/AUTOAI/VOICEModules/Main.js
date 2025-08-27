@@ -38,7 +38,7 @@ function startRecordingAndRunDeepSpeech() {
   const recorder = record.record({
     sampleRate: 16000,
     endOnSilence: true,
-    recorder: "arecord"
+    recorder: "sox"
   });
   const fileStream = fs.createWriteStream(audioFile, {
     encoding: "binary"
@@ -84,7 +84,7 @@ async function transcribeViaApi(audioFile) {
   form.append('audio', fs.createReadStream(audioFile)); // same field name as multer expects
 
   try {
-    const response = await fetch('http://100.127.25.47:3000/stt', {
+    const response = await fetch(`${config.addons.AI.ProxyAPI}/stt`, {
       method: 'POST',
       body: form,
       headers: form.getHeaders()
