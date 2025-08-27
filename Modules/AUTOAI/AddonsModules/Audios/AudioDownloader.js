@@ -81,43 +81,59 @@ async function DownloadFile(source, mp3Url, filepath, filename) {
   }
 }
 
-const { exec } = require('child_process');
+const Speaker = require("speaker");
 
 function playAudioSound(audioPath) {
-  if (!audioPath) return;
-
-  // Stop currently playing audio if any
-  if (currentAudioProcess) {
-    currentAudioProcess.kill();
-    currentAudioProcess = null;
-    console.log("Previous audio playback stopped.");
+  const fs = require("fs");
+  var currentSpeakersound;
+  if (currentSpeakersound) {
+    currentSpeakersound.end();
+    currentSpeakersound.close();
+    console.log("Audio playback stopped.");
+    writeToLogFileMusic("Audio playback stopped.");
+    // Reset the currentSpeaker variable
+    currentSpeakersound = null;
   }
 
-  // Start new mp3 playback
-  currentAudioProcess = exec(`mpg123 "${audioPath}"`, (error, stdout, stderr) => {
-    if (error) {
-      if (error.killed) {
-        console.log("MP3 playback was stopped.");
-      } else {
-        console.error(`Error playing MP3: ${error.message}`);
-      }
-      return;
-    }
-    console.log("MP3 playback finished.");
-    currentAudioProcess = null;
-  });
+  // Check if audioPath is not an empty string
+  if (audioPath !== "") {
+    // Create a speaker instance only if audioPath is not empty
+    const speaker = new Speaker({
+      channels: 2,
+      bitDepth: 16,
+      sampleRate: 48000
+    });
+
+    // Set the current speaker instance
+    currentSpeakersound = speaker;
+
+    // Read the audio file and it
+    const audioData = fs.readFileSync(audioPath);
+    speaker.write(audioData);
+
+    // Event handler for 'close' event
+    speaker.on("close", () => {
+      console.log("Audio playback has stopped.");
+    });
+  }
 }
 
 function playAudioTTS(audioPath) {
+  const fs = require("fs");
+  const Speaker = require("speaker");
+  
   if (!audioPath) return;
 
-  exec(`aplay "${audioPath}"`, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error playing WAV: ${error.message}`);
-      return;
-    }
-    console.log("WAV playback finished.");
+  const fileStream = fs.createReadStream(audioPath);
+  const reader = new wav.Reader();
+
+  // This will be fired when the WAV header is parsed
+  reader.on("format", function (format) {
+    const speaker = new Speaker(format);
+    reader.pipe(speaker);
   });
+
+  fileStream.pipe(reader);
 }
 
 module.exports = {
