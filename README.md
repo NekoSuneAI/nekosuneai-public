@@ -1,3 +1,3 @@
 # NekoSuneAI
 
-NekoSuneAI is a VRChat AI BOT
+NekoSuneAI is a AI BOT

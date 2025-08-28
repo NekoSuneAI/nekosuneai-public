@@ -24,29 +24,20 @@ function containsBannedWord(message) {
 }
 
 async function BadWordDetected(audioFile, messageid) {
-  const { sendMSGOSC } = require("../OSC/Send");
-
   const { startRecordingAndRunDeepSpeech } = require("../../VOICEModules/Main");
 
   const { sleep } = require("../ShortCuts");
 
-  const { sendToWebhookchatResponse } = require("./Webhooks");
   const { config } = require("../../../config");
 
   return new Promise(async (resolve, reject) => {
-    sendMSGOSC(`[FORBIDDEN ACCESS]`);
+    console.log(`[FORBIDDEN ACCESS]`);
     await sleep(5000);
-    sendMSGOSC(
-      `This infomation is Forbidden access by my Creator, Please follow VRChat Terms of Service.`
+    console.log(
+      `This infomation is Forbidden access by my Creator, Please follow Terms of Service.`
     );
-    sendToWebhookchatResponse(
-      `[FORBIDDEN ACCESS]\n\nThis infomation is Forbidden access by my Creator, Please follow VRChat Terms of Service.`,
-      messageid
-    ).then(datauwu => {
-      console.log(datauwu);
-    });
     const audioFileAi = await generateTts(
-      "This infomation is Forbidden access by my Creator, Please follow VRChat Terms of Service.",
+      "This infomation is Forbidden access by my Creator, Please follow Terms of Service.",
       config.addons.AI.voice || "en_US-lessac-medium",
       `audio/aiout_${Date.now()}.wav`
     );

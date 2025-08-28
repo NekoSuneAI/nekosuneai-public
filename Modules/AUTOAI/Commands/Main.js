@@ -35,8 +35,6 @@ const {
 
 const { readAndPrintSentences } = require("../VOICEModules/Speak");
 
-const { sendMSGOSC } = require("../AddonsModules/OSC/Send");
-
 const { writeToLogFile } = require("../VOICEModules/LogFiles");
 const e = require("express");
 
@@ -96,12 +94,8 @@ async function RunCommands(audioFile, result, messageid) {
       break;
     default:
       // Your default case
-      sendMSGOSC(`Thinking.....`);
       console.log("Thinking.....");
       const { RESPGPT } = require("../AddonsModules/API/GPTNODE");
-      const {
-        sendToWebhookchatResponse
-      } = require("../AddonsModules/API/Webhooks");
       const response = await RESPGPT(
         result[0].text.replace(config.addons.AI.onwakeword.toLowerCase(), ''),
         config.addons.AI.OPENAI.gptModel
@@ -126,11 +120,7 @@ async function RunCommands(audioFile, result, messageid) {
           `Can you say question again? or ChatGPT Local Request timed out`
         ];
 
-        await sendToWebhookchatResponse(
-          `Can you say question again? or ChatGPT Local Request timed out`,
-          messageid
-        );
-        sendMSGOSC(responsetext);
+        console.log(responsetext);
         readAndPrintSentences(responsetext, audioFile, messageid);
       } else {
         const {
