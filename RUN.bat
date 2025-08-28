@@ -1,36 +1,12 @@
 @echo off
 setlocal enableextensions enabledelayedexpansion
 
-:: ================================
-:: NekoSuneAI Assistant — Made by NekoSuneVR (UI Banner)
-:: ================================
-title NekoSuneAI Assistant — Made by NekoSuneVR
+title NekoSuneAI Assistant - Made by NekoSuneVR
 
-rem Optional: set console size & color (black bg, bright cyan text)
-mode con: cols=86 lines=30 >nul 2>nul
-color 0B
-
-echo.
-echo  ╔═════════════════════════════════════════════════════════════════════════════════════════════════════════╗
-echo  ║                                                                                                         ║
-echo  ║    __    __            __                   ______                                  ______   ______     ║
-echo  ║    /  \  /  |          /  |                 /      \                                /      \ /      |   ║
-echo  ║    $$  \ $$ |  ______  $$ |   __   ______  /$$$$$$  | __    __  _______    ______  /$$$$$$  |$$$$$$/    ║
-echo  ║    $$$  \$$ | /      \ $$ |  /  | /      \ $$ \__$$/ /  |  /  |/       \  /      \ $$ |__$$ |  $$ |     ║
-echo  ║    $$$$  $$ |/$$$$$$  |$$ |_/$$/ /$$$$$$  |$$      \ $$ |  $$ |$$$$$$$  |/$$$$$$  |$$    $$ |  $$ |     ║
-echo  ║    $$ $$ $$ |$$    $$ |$$   $$<  $$ |  $$ | $$$$$$  |$$ |  $$ |$$ |  $$ |$$    $$ |$$$$$$$$ |  $$ |     ║
-echo  ║    $$ |$$$$ |$$$$$$$$/ $$$$$$  \ $$ \__$$ |/  \__$$ |$$ \__$$ |$$ |  $$ |$$$$$$$$/ $$ |  $$ | _$$ |_    ║
-echo  ║    $$ | $$$ |$$       |$$ | $$  |$$    $$/ $$    $$/ $$    $$/ $$ |  $$ |$$       |$$ |  $$ |/ $$   |   ║
-echo  ║    $$/   $$/  $$$$$$$/ $$/   $$/  $$$$$$/   $$$$$$/   $$$$$$/  $$/   $$/  $$$$$$$/ $$/   $$/ $$$$$$/    ║                                                                                          
-echo  ║                                                                                                         ║
-echo  ║                                  NekoSuneAI Assistant — Made by NekoSuneVR                              ║
-echo  ║                                                                                                         ║
-echo  ╚═════════════════════════════════════════════════════════════════════════════════════════════════════════╝
-echo.
-
-rem Optional: brief subtitle
-echo  >> Initializing setup...
-echo.
+echo ================================
+echo NekoSuneAI Assistant - Made by NekoSuneVR 
+echo Starting Setup Script
+echo ================================
 
 :: --- Step 1: Update Git repo ---
 echo Pulling latest code from Git...
