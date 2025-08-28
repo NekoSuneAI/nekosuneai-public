@@ -4,19 +4,6 @@ const {
   startRecordingAndRunDeepSpeech
 } = require("./Modules/AUTOAI/VOICEModules/Main");
 
-
-const fs = require('fs').promises;
-const path = require('path');
-const { https } = require('follow-redirects');
-const { pipeline } = require('stream');
-const util = require('util');
-const pipelineAsync = util.promisify(pipeline);
-const os = require('os');
-const logger = console;
-const readline = require('readline');
-const unzipper = require('unzipper');
-const {loadTtsConfigs} = require("./Modules/AUTOAI/VOICEModules/Speak");
-
 //////////////////////////////////////////////////
 //AI SYSTEM
 require("log-timestamp"); //npm log-timestamp
