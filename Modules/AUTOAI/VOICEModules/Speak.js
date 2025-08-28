@@ -1,4 +1,3 @@
-const { sendMSGOSC } = require("../AddonsModules/OSC/Send");
 const { playAudioTTS } = require("../AddonsModules/Audios/AudioDownloader");
 
 const { writeToLogFile } = require("./LogFiles");
@@ -82,9 +81,6 @@ function stripEmojis(text) {
 
 async function readAndPrintSentences(sentences, audioFile, messageid) {
   const { startRecordingAndRunDeepSpeech } = require("../VOICEModules/Main");
-  const {
-    sendToWebhookchatResponse
-  } = require("../AddonsModules/API/Webhooks");
   // This was added to fixed a issues with the Error: startRecordingAndRunDeepSpeech is not a function
 
   const totalPages = sentences.length;
@@ -93,13 +89,7 @@ async function readAndPrintSentences(sentences, audioFile, messageid) {
   for (const sentence of sentences) {
     console.log(`Reading: Page ${currentPage}/${totalPages}: ${sentence}`);
     writeToLogFile(`Reading: Page ${currentPage}/${totalPages}: ${sentence}`);
-    sendToWebhookchatResponse(
-      `Page ${currentPage}/${totalPages}: ${sentence}`,
-      messageid
-    ).then(datauwu => {
-      console.log("Responded Message to Discord");
-    });
-    sendMSGOSC(`${sentence} \n⏪${currentPage}/${totalPages}⏩`);
+    console.log(`${sentence} \n⏪${currentPage}/${totalPages}⏩`);
     const cleanSentence = stripEmojis(sentence);
     const audioFileAi = await generateTts(
       cleanSentence,

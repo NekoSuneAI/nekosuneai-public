@@ -54,17 +54,11 @@ function playSound(audioFile, result) {
 }
 
 function playThugLife(audioFile) {
-  const { sendMSGOSC } = require("../OSC/Send");
-
   const { DownloadFile } = require("./AudioDownloader");
 
   const { startRecordingAndRunDeepSpeech } = require("../../VOICEModules/Main");
 
-  sendMSGOSC(`SoundBoard: THUG LIFE!`);
-  let value = 1;
-  let valueoff = 0;
-  console.log("Sending OSC message for avatar interaction (start)");
-  sendOSC("/avatar/parameters/asset/interactive/", value, valueoff);
+  console.log(`SoundBoard: THUG LIFE!`);
   DownloadFile(
     "memes",
     "https://www.myinstants.com/media/sounds/dr-dre-nuthin-but-a-g-thang.mp3",
@@ -76,13 +70,11 @@ function playThugLife(audioFile) {
 }
 
 function playDespacito(audioFile) {
-  const { sendMSGOSC } = require("../OSC/Send");
-
   const { DownloadFile } = require("./AudioDownloader");
 
   const { startRecordingAndRunDeepSpeech } = require("../../VOICEModules/Main");
 
-  sendMSGOSC(`SoundBoard: Despacito`);
+  console.log(`SoundBoard: Despacito`);
   DownloadFile(
     "memes",
     "https://www.myinstants.com/media/sounds/despacito.mp3",
@@ -94,13 +86,11 @@ function playDespacito(audioFile) {
 }
 
 function playExecuteOrder66(audioFile) {
-  const { sendMSGOSC } = require("../OSC/Send");
-
   const { DownloadFile } = require("./AudioDownloader");
 
   const { startRecordingAndRunDeepSpeech } = require("../../VOICEModules/Main");
 
-  sendMSGOSC(`SoundBoard: Execute Order 66`);
+  console.log(`SoundBoard: Execute Order 66`);
   DownloadFile(
     "memes",
     "https://www.myinstants.com/media/sounds/order66.mp3",
@@ -112,13 +102,11 @@ function playExecuteOrder66(audioFile) {
 }
 
 function playTripToValhalla(audioFile) {
-  const { sendMSGOSC } = require("../OSC/Send");
-
   const { DownloadFile } = require("./AudioDownloader");
 
   const { startRecordingAndRunDeepSpeech } = require("../../VOICEModules/Main");
 
-  sendMSGOSC(`SoundBoard: Trip To Valhalla!!`);
+  console.log(`SoundBoard: Trip To Valhalla!!`);
   DownloadFile(
     "memes",
     "https://www.myinstants.com/media/sounds/trip-to-valhalla.mp3",
@@ -135,13 +123,11 @@ function generateRandomArray(soundDataArray) {
 }
 
 function playEmotionalDamage(audioFile) {
-  const { sendMSGOSC } = require("../OSC/Send");
-
   const { DownloadFile } = require("./AudioDownloader");
 
   const { startRecordingAndRunDeepSpeech } = require("../../VOICEModules/Main");
 
-  sendMSGOSC(`SoundBoard: Emotional Damage`);
+  console.log(`SoundBoard: Emotional Damage`);
   const randomUrlArray = [
     {
       name: "emotional_damage_remix",

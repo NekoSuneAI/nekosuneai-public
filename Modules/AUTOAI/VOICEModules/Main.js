@@ -1,5 +1,3 @@
-const { sendMSGOSC } = require("../AddonsModules/OSC/Send");
-
 const { writeToLogFile } = require("./LogFiles");
 
 const {
@@ -10,8 +8,6 @@ const {
 const { RunCommands } = require("../Commands/Main");
 
 const { sleep } = require("../AddonsModules/ShortCuts");
-
-const { sendToWebhookchat } = require("../AddonsModules/API/Webhooks");
 
 const { playSound } = require("../AddonsModules/Audios/AudioSounds");
 
@@ -44,7 +40,6 @@ function startRecordingAndRunDeepSpeech() {
     encoding: "binary"
   });
   // Set an interval to send the OSC message every 20 seconds
-  // const oscSayingwordsInterval = setInterval(sendOscSayingwordsMessage, 1000);
   recorder
     .stream()
     .on("data", data => {
@@ -57,7 +52,6 @@ function startRecordingAndRunDeepSpeech() {
     .on("end", () => {
       console.error("Recording Ended");
       writeToLogFile("Recording Ended");
-      // clearInterval(oscSayingwordsInterval);
       recorder.stop();
       // Verify file existence before renaming
       if (fs.existsSync(audioFile)) {
@@ -109,7 +103,7 @@ async function transcribeViaApi(audioFile) {
 
 // Function to run DeepSpeech and delete the audio file.
 async function performSpeechRecognition(audioFile) {
-  sendMSGOSC(`Thinking.`);
+  console.log(`Thinking.`);
 
   try {
     const result = await transcribeViaApi(audioFile);
@@ -122,51 +116,26 @@ async function performSpeechRecognition(audioFile) {
       ];
 
       writeToLogFile("[Vosk Local] Recognized text: " + resulttt[0].text);
-      sendMSGOSC(`Thinking...`);
-      if (config.addons.discord.toggle) {
-        const recognizedText = resulttt[0].text.toLowerCase(); // case-insensitive check
-        if (recognizedText.includes(config.addons.AI.onwakeword.toLowerCase())) {
-          console.log(`Wake command "${config.addons.AI.onwakeword.toLowerCase()}" detected!`);
-          // start your action here
+      console.log(`Thinking...`);
+      const recognizedText = resulttt[0].text.toLowerCase(); // case-insensitive check
+      if (recognizedText.includes('jarvis')) {
+        console.log(`Wake command "${config.addons.AI.onwakeword.toLowerCase()}" detected!`);
+        // start your action here
 
-          sendToWebhookchat(result.alternatives[0].text.replace(config.addons.AI.onwakeword.toLowerCase(), '')).then(async meep => {
-            if (containsBannedWord(resulttt[0].text.replace(config.addons.AI.onwakeword.toLowerCase(), ''))) {
-              BadWordDetected(audioFile, meep.messageid);
-            } else {
-              const SoundboardResp = await playSound(audioFile, resulttt);
-              console.log("[SoundboardResp]", SoundboardResp.resp);
-              if (SoundboardResp.resp == "NO MATCH DATA!") {
-                await RunCommands(audioFile, resulttt, meep.messageid);
-              }
-            }
-          });
+        if (containsBannedWord(resulttt[0].text.replace(config.addons.AI.onwakeword.toLowerCase(), ''))) {
+          BadWordDetected(audioFile, null);
         } else {
-          console.log(`Wake command "${config.addons.AI.onwakeword.toLowerCase()}" Not Detected!`);
-          fs.unlinkSync(audioFile);
-          // Start recording and running DeepSpeech again.
-          startRecordingAndRunDeepSpeech();
+          const SoundboardResp = await playSound(audioFile, resulttt);
+          console.log("[SoundboardResp]", SoundboardResp.resp);
+          if (SoundboardResp.resp == "NO MATCH DATA!") {
+            await RunCommands(audioFile, resulttt, null);
+          }
         }
       } else {
-        const recognizedText = resulttt[0].text.toLowerCase(); // case-insensitive check
-        if (recognizedText.includes('jarvis')) {
-          console.log(`Wake command "${config.addons.AI.onwakeword.toLowerCase()}" detected!`);
-          // start your action here
-
-          if (containsBannedWord(resulttt[0].text.replace(config.addons.AI.onwakeword.toLowerCase(), ''))) {
-            BadWordDetected(audioFile, null);
-          } else {
-            const SoundboardResp = await playSound(audioFile, resulttt);
-            console.log("[SoundboardResp]", SoundboardResp.resp);
-            if (SoundboardResp.resp == "NO MATCH DATA!") {
-              await RunCommands(audioFile, resulttt, null);
-            }
-          }
-        } else {
-          console.log(`Wake command "${config.addons.AI.onwakeword.toLowerCase()}" Not Detected!`);
-          fs.unlinkSync(audioFile);
-          // Start recording and running DeepSpeech again.
-          startRecordingAndRunDeepSpeech();
-        }
+        console.log(`Wake command "${config.addons.AI.onwakeword.toLowerCase()}" Not Detected!`);
+        fs.unlinkSync(audioFile);
+        // Start recording and running DeepSpeech again.
+        startRecordingAndRunDeepSpeech();
       }
     } else {
       //const error = await response.text();
