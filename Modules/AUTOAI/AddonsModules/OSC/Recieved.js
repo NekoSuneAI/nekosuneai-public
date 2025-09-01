@@ -1,7 +1,7 @@
 const { config } = require("../../../config");
 
 const { Server } = require("node-osc");
-const { playAudioSound } = require("../../AddonsModules/Audios/AudioDownloader");
+const { playAudioTTS } = require("../../AddonsModules/Audios/AudioDownloader");
 
 async function LoadsReadOSC() {
   const oscServer = new Server(
@@ -68,7 +68,7 @@ async function handleOscMessage(address, args) {
 
         sendMSGOSC(msgchest);
         const audioFileAi = await generateTts(msgchest, config.addons.AI.voice || "en_US-lessac-medium", `audio/aiout_${Date.now()}.wav`);
-        playAudioSound(audioFileAi);
+        playAudioTTS(audioFileAi);
       }
       break;
     // Add more cases for other OSC addresses you are interested in

@@ -1,38 +1,104 @@
 @echo off
-setlocal enableextensions enabledelayedexpansion
+setlocal ENABLEEXTENSIONS ENABLEDELAYEDEXPANSION
+title Project Setup Assistant - Creator: NekoSuneVR
+color 0B
 
-echo ================================
-echo Starting Setup Script
-echo ================================
+echo.
+echo ==================================================
+echo  Project Setup Assistant  -  Creator: NekoSuneVR
+echo ==================================================
+echo.
 
-:: --- Step 1: Update Git repo ---
-echo Pulling latest code from Git...
-git pull
+REM --- Vars ---
+set "ROOT=%~dp0"
+set "SOX_BASE=%ROOT%tools\sox"
+set "SOX_EXE="
+set "SOX_ZIP=%TEMP%\sox-win.zip"
+set "APP_EXIT=0"
 
-:: --- Step 2: Check for SoX ---
-echo Checking for SoX in tools\sox...
+REM --- Step 0: Preflight ---
+echo [1/5] Checking tools...
+where git >nul 2>&1 && (echo   OK: git) || (echo   WARN: git not found)
+where node >nul 2>&1 && (echo   OK: node) || (echo   ERROR: node not found)
+where npm  >nul 2>&1 && (echo   OK: npm)  || (echo   WARN: npm not found)
+echo.
 
-if not exist ".\tools\sox\sox-14-4-1\sox.exe" (
-    echo SoX not found. Downloading SoX 14.4.1...
-    powershell -Command "Invoke-WebRequest https://master.dl.sourceforge.net/project/sox/sox/14.4.1/sox-14.4.1-win32.zip?viasf=1 -OutFile sox.zip"
-    powershell -Command "Expand-Archive sox.zip -DestinationPath .\tools\sox"
-    del sox.zip
+REM --- Step 1: Update repo (best-effort) ---
+echo [2/5] Updating repository (git pull)...
+where git >nul 2>&1 && (git pull) || (echo   Skipping: git not installed)
+echo.
+
+REM --- Step 2: Find/Install SoX ---
+echo [3/5] Checking for SoX under "%SOX_BASE%"...
+
+if not exist "%SOX_BASE%\sox-14.4.1\sox.exe" (
+  echo   SoX not found. Downloading SoX 14.4.1...
+  if not exist "%SOX_BASE%" mkdir "%SOX_BASE%"
+  powershell -NoLogo -NoProfile -Command ^
+    "Invoke-WebRequest 'https://master.dl.sourceforge.net/project/sox/sox/14.4.1/sox-14.4.1-win32.zip?viasf=1' -OutFile '%SOX_BASE%\sox.zip'"
+  powershell -NoLogo -NoProfile -Command ^
+    "Expand-Archive -LiteralPath '%SOX_BASE%\sox.zip' -DestinationPath '%SOX_BASE%' -Force"
+  del /q "%SOX_BASE%\sox.zip"
 ) else (
-    echo SoX found in tools\sox
+  echo   SoX found in "%SOX_BASE%\sox-14.4.1"
 )
 
-:: Add SoX to PATH for current session
-set "PATH=%CD%\tools\sox\sox-14-4-1;%PATH%"
+REM Add SoX to PATH for current session (corrected dir name)
+set "PATH=%CD%\tools\sox\sox-14.4.1;%PATH%"
+echo.
 
-:: --- Step 3: Install node modules ---
-if not exist node_modules (
-    echo Installing node modules...
+REM --- Step 3: Dependencies ---
+echo [4/5] Installing dependencies...
+
+if exist "%ROOT%node_modules" (
+  echo   node_modules present. (Run "npm ci" for a clean install if needed.)
+) else (
+  where npm >nul 2>&1
+  if errorlevel 1 (
+    echo   WARNING: npm not available. Skipping install.
+  ) else (
+    echo   Running: npm install
     npm install
+    if errorlevel 1 (
+      echo   ERROR: npm install failed.
+      set "APP_EXIT=1"
+      REM Keep going so we still attempt to launch if possible.
+    )
+  )
+)
+echo.
+
+REM --- Step 4: Launch ---
+echo [5/5] Launching app...
+
+set "HAS_START=0"
+if exist "%ROOT%package.json" (
+  for /f "usebackq delims=" %%S in (`
+    powershell -NoLogo -NoProfile -Command ^
+      "$p=Get-Content -Raw -LiteralPath '%ROOT%package.json' ^| ConvertFrom-Json; if($p.scripts.start){'YES'}"
+  `) do (
+    if /i "%%S"=="YES" set "HAS_START=1"
+  )
 )
 
-:: --- Step 4: Run the app ---
-echo Launching the app...
-node index.js
+if "%HAS_START%"=="1" (
+  echo   Starting: npm run start
+  call npm run start
+  set "APP_EXIT=%ERRORLEVEL%"
+) else (
+  if exist "%ROOT%index.js" (
+    echo   Starting: node index.js
+    node "%ROOT%index.js"
+    set "APP_EXIT=%ERRORLEVEL%"
+  ) else (
+    echo   ERROR: No "start" script and no index.js found.
+    set "APP_EXIT=1"
+  )
+)
 
-endlocal
+echo(
+echo Done. App exit code: %APP_EXIT%
+echo Creator: NekoSuneVR
+echo(
 pause
+endlocal
