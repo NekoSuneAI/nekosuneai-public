@@ -1,4 +1,3 @@
-# ---> Node
 # Logs
 logs
 *.log
@@ -7,6 +6,24 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
+
+# IGNORE OTHER STUFF
+config/config.json
+config/*.sqlite
+audio/audio.wav
+moderationlogs/
+audio/
+Modules/sounds/*.wav
+audio/recognized_audio.wav
+python-portable/
+piper/
+model/
+tools/
+config/memory.sqlite
+tts_configs/
+Modules/AUTOAI/VOICEModules/Speakbup.js
+
+package-lock.json
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
@@ -130,3 +147,14 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+memes/
+music/
+download/
+buzzer/
+queue.json
+audio/audio.wav
+audio/recognized_audio.wav
+
+store/
+store/token
+test/

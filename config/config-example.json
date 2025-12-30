@@ -1,0 +1,121 @@
+{
+  "discord": {
+    "toggle": false,
+    "token": "",
+    "TestingServerID": "",
+    "TestingServerCID": "",
+    "developerID": [
+      ""
+    ],
+    "randomMessages_Cooldown": [
+      "Slow It Down Fam...", 
+      "Spam Isn't Cool Fam....", 
+      "Get Premium dude...", 
+      "Never Gonna Let You Down",
+      "Subscribe To DrakeZee lol"
+    ],
+    "sql": {
+      "host": "127.0.0.1",
+      "port": 3306,
+      "user": "root",
+      "password": "password",
+      "dialect": "sqlite"
+    },
+    "API": {
+      "MYAPIKEY": "",
+      "twitchuser": "nekosunevr"
+    }
+  },
+  "VRCACC": {
+    "username": "EMAIL",
+    "password": "PASS",
+    "twofatoken": "2FA",
+    "OSC_TARGET_ADDRESS": "127.0.0.1",
+    "OSC_TARGET_PORT": "9000",
+    "OSC_READ_PORT": "9001"
+  },
+  "addons": {
+    "discord": {
+      "toggle": false,
+      "webhookerror": "",
+      "webhookchat": "",
+      "webhookreply": "",
+      "authbearer": "AUTHTOKEN",
+      "serverid": "DISCORDSERVERID"
+    },
+    "FriendsSystem": {
+      "toggle": true
+    },
+    "AI": {
+      "toggle": true,
+      "voice": "en_US-lessac-medium",
+      "sttProvider": "openai",
+      "vaskmodel": "vosk-model-en-us-0.22",
+      "ApiNodeFallback": "http://localhost:3456",
+      "RVCAPINODE": "http://localhost:5050",
+      "AudioVRCPath": "Stereo Mix (Realtek High Definition Audio)",
+      "waitSoundVolume": 0.3,
+      "GPTText": {
+        "apiKey": "",
+        "baseURL": "https://chat.nekosunevr.co.uk/api",
+        "gptModel": "nekosuneai-vtuber",
+        "systemmsg": ""
+      },
+      "SearxNG": {
+        "baseURL": "https://searxng.nekosunevr.co.uk",
+        "maxResults": 5,
+        "blocklist": [
+          "news",
+          "latest news",
+          "politics",
+          "political",
+          "election",
+          "elections",
+          "government",
+          "breaking",
+          "latest updates",
+          "updates on",
+          "what's going on",
+          "what is going on",
+          "going on in",
+          "war",
+          "wars",
+          "conflict",
+          "ukraine",
+          "russia",
+          "religion",
+          "religious",
+          "jesus",
+          "allah",
+          "bible",
+          "quran"
+        ]
+      },
+      "OPENAI": {
+        "apiKey": "",
+        "baseURL": ""
+      }
+    },
+    "apikey": {
+      "weather": {
+        "key": ""
+      },
+      "timeapi": {
+        "key": ""
+      }
+    },
+    "filters": {
+      "explicit": {
+        "joke": false
+      }
+    },
+    "vrcapi": {
+      "toggles": {
+        "blfr": true,
+        "blscan": true,
+        "wlreq": true
+      },
+      "whitelist": []
+    }
+  }
+}
