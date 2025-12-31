@@ -1752,6 +1752,12 @@
     "GMTOffset": "UTC +02:00"
   },
   {
+    "CountryCode": "RO",
+    "countryName": "Rumania",
+    "timeZone": "Europe/Bucharest",
+    "GMTOffset": "UTC +02:00"
+  },
+  {
     "CountryCode": "RU",
     "countryName": "Russian Federation",
     "timeZone": "Asia/Anadyr",

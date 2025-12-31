@@ -72,9 +72,11 @@ async function TimezonesGrabber(originalText) {
       /what time is it in/i,
       /what time is it/i
     ];
-    const foundCountry = findCountryByName(
-      processText(originalText, commandPatterns)
-    );
+    const cleanedQuery = processText(originalText, commandPatterns);
+    const foundCountry = findCountryByName(cleanedQuery);
+    if (!foundCountry || !foundCountry.timeZone) {
+      return { error: `No timezone match for: ${cleanedQuery}` };
+    }
 
     // Get the current time in the specified region
     const selectedTime = new Date().toLocaleString("en-US", {

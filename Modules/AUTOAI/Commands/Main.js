@@ -274,6 +274,12 @@ async function RunCommands(audioFile, result, messageid) {
         const originalText = result[0].text.toLowerCase();
         try {
           const resp = await TimezonesGrabber(originalText);
+          if (!resp || resp.error || !resp.ampm) {
+            const msg = "Sorry, I couldn't find that time zone.";
+            writeToLogFile("[TimeZone API] Error: " + (resp?.error || "Unknown time zone."));
+            await readAndPrintSentences([msg], audioFile, messageid);
+            break;
+          }
           const datafound = `Time in ${originalText}: ${resp.ampm}`;
           writeToLogFile("[TimeZone API] Recognized: " + datafound);
           const responsetext = [datafound];
