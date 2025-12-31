@@ -2247,7 +2247,7 @@
     "CountryCode": "GB",
     "countryName": "United Kingdom",
     "timeZone": "Europe/London",
-    "GMTOffset": "UTC"
+    "GMTOffset": "UTC +00:00"
   },
   {
     "CountryCode": "US",
