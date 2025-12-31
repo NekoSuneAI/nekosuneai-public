@@ -9,7 +9,8 @@ const {
   GatewayIntentBits,
   Partials,
 } = require("discord.js");
-const chalk = require("chalk");
+const chalkImport = require("chalk");
+const chalk = chalkImport.default || chalkImport;
 const path = require("path");
 const i18n = require("i18n");
 
