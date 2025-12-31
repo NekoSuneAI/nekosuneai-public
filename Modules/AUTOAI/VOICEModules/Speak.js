@@ -287,7 +287,20 @@ const teenWords = [
   'eighteen',
   'nineteen'
 ];
+const tensWords = [
+  '',
+  '',
+  'twenty',
+  'thirty',
+  'forty',
+  'fifty',
+  'sixty',
+  'seventy',
+  'eighty',
+  'ninety'
+];
 const scaleWords = [
+  '',
   'thousand',
   'million',
   'billion',
