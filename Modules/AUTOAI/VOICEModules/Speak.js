@@ -263,6 +263,119 @@ function stripEmojis(text) {
   return text.replace(/[\p{Emoji_Presentation}\p{Emoji}\u200d]+/gu, '').trim();
 }
 
+const digitWords = [
+  'zero',
+  'one',
+  'two',
+  'three',
+  'four',
+  'five',
+  'six',
+  'seven',
+  'eight',
+  'nine'
+];
+const teenWords = [
+  'ten',
+  'eleven',
+  'twelve',
+  'thirteen',
+  'fourteen',
+  'fifteen',
+  'sixteen',
+  'seventeen',
+  'eighteen',
+  'nineteen'
+];
+const scaleWords = [
+  'thousand',
+  'million',
+  'billion',
+  'trillion',
+  'quadrillion',
+  'quintillion',
+  'sextillion',
+  'septillion',
+  'octillion',
+  'nonillion',
+  'decillion'
+];
+
+function stripHttpUrls(text) {
+  return text.replace(/https?:\/\/\S+/gi, '').trim();
+}
+
+function chunkToWords(num) {
+  if (num === 0) return '';
+  if (num < 10) return digitWords[num];
+  if (num < 20) return teenWords[num - 10];
+  if (num < 100) {
+    const tens = Math.floor(num / 10);
+    const ones = num % 10;
+    return ones ? `${tensWords[tens]} ${digitWords[ones]}` : tensWords[tens];
+  }
+  const hundreds = Math.floor(num / 100);
+  const rest = num % 100;
+  const restWords = rest ? ` ${chunkToWords(rest)}` : '';
+  return `${digitWords[hundreds]} hundred${restWords}`;
+}
+
+function integerToWords(intString) {
+  let value;
+  try {
+    value = BigInt(intString);
+  } catch (err) {
+    return '';
+  }
+  if (value === 0n) return 'zero';
+
+  const parts = [];
+  let scaleIndex = 0;
+  while (value > 0n) {
+    const chunk = Number(value % 1000n);
+    if (chunk) {
+      const chunkWords = chunkToWords(chunk);
+      const scale = scaleWords[scaleIndex] || '';
+      parts.unshift(scale ? `${chunkWords} ${scale}` : chunkWords);
+    }
+    value = value / 1000n;
+    scaleIndex += 1;
+  }
+  return parts.join(' ');
+}
+
+function numberStringToWords(text) {
+  const normalized = text.replace(/,/g, '');
+  const parts = normalized.split('.');
+  const intPart = parts[0];
+  const intWords = integerToWords(intPart);
+  if (!intWords) return '';
+  if (parts.length === 1) return intWords;
+  const fracPart = parts[1] || '';
+  if (!fracPart) return intWords;
+  const fracWords = fracPart
+    .split('')
+    .map(d => digitWords[Number(d)])
+    .join(' ');
+  return `${intWords} point ${fracWords}`;
+}
+
+function numbersToWords(text) {
+  const numberPattern = /\b\d{1,3}(?:,\d{3})*(?:\.\d+)?\b/g;
+  return text.replace(numberPattern, match => {
+    const words = numberStringToWords(match);
+    return words || match;
+  });
+}
+
+function prepareTtsText(text) {
+  if (typeof text !== 'string') {
+    return '';
+  }
+  const withoutUrls = stripHttpUrls(text);
+  return numbersToWords(withoutUrls);
+}
+
 function waitMs(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -296,7 +409,7 @@ async function readAndPrintSentencesAdminCmds(sentences, audioFile, messageid) {
 
   for (const cleanSentence of cleanedSentences) {
     const audioFileAi = await runTTSRVC(
-      cleanSentence.replace('[BROADCAST] ', '').replace('\n', ''),
+      prepareTtsText(cleanSentence.replace('[BROADCAST] ', '').replace('\n', '')),
       null,
       config.addons.AI.GPTText.gptModel,
       `audio/`
@@ -359,7 +472,7 @@ async function readAndPrintSentences(sentences, audioFile, messageid) {
 
   for (const cleanSentence of cleanedSentences) {
     const audioFileAi = await runTTSRVC(
-      cleanSentence.replace('[BROADCAST] ', '').replace('\n', ''),
+      prepareTtsText(cleanSentence.replace('[BROADCAST] ', '').replace('\n', '')),
       null,
       config.addons.AI.GPTText.gptModel,
       `audio/`
