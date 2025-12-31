@@ -8,12 +8,14 @@ const {
 } = require("../AddonsModules/API/BadWordDetected");
 
 const { RunCommands } = require("../Commands/Main");
+const { markMemoryActivity } = require("../../Addons/memoryStore");
 
 const { sleep } = require("../AddonsModules/ShortCuts");
 
 const { sendToWebhookchat } = require("../AddonsModules/API/Webhooks");
 
 const { playSound } = require("../AddonsModules/Audios/AudioSounds");
+const { stopAudioSound } = require("../AddonsModules/Audios/AudioDownloader");
 const { startRenderProgress, stopRenderProgress } = require("./Speak");
 const { isMicDisabled } = require("./VoiceState");
 
@@ -195,7 +197,20 @@ async function performSpeechRecognition(audioFile) {
           text: result.text
         }
       ];
+      markMemoryActivity();
       writeToLogFile(`[STT:${sttProvider}] Recognized text: ${resulttt[0].text}`);
+      if (resulttt[0].text.includes("[BLANK_AUDIO]")) {
+        console.log("[STT] Blank audio detected. Restarting voice.");
+        writeToLogFile("[STT] Blank audio detected. Restarting voice.");
+        stopAudioSound();
+        stopRenderProgress({ force: true });
+        if (fs.existsSync(audioFile)) {
+          fs.unlinkSync(audioFile);
+        }
+        await sleep(1000);
+        startRecordingAndRunDeepSpeech();
+        return;
+      }
       if (config.addons.discord.toggle) {
         sendToWebhookchat(resulttt[0].text).then(async meep => {
           if (containsBannedWord(resulttt[0].text)) {

@@ -50,6 +50,7 @@
       "toggle": true,
       "voice": "en_US-lessac-medium",
       "sttProvider": "openai",
+      "whisperModel": "base",
       "vaskmodel": "vosk-model-en-us-0.22",
       "ApiNodeFallback": "http://localhost:3456",
       "RVCAPINODE": "http://localhost:5050",
