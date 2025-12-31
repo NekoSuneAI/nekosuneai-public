@@ -1,4 +1,4 @@
-const client = require("../index");
+const { client } = require("../index");
 const chalkImport = require("chalk");
 const chalk = chalkImport.default || chalkImport;
 const { version: discordjsVersion, ActivityType } = require("discord.js");

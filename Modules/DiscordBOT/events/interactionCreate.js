@@ -1,4 +1,4 @@
-const client = require("../index");
+const { client } = require("../index");
 const i18n = require("i18n");
 const ms = require("ms");
 const { EmbedBuilder } = require("discord.js");

@@ -15,17 +15,19 @@ module.exports = async (client) => {
   if (!client.slashCommands) client.slashCommands = new Collection();
 
   // ———————————————[Events]———————————————
-  const eventFiles = await globPromise(`${process.cwd()}/events/*.js`);
+  const eventFiles = await globPromise(`${process.cwd()}/Modules/DiscordBOT/events/*.js`);
   for (const file of eventFiles) {
+    console.log(file)
     // Each event module should self-register on require()
     require(file);
   }
 
   // ———————————————[Slash Commands]———————————————
-  const slashFiles = await globPromise(`${process.cwd()}/SlashCommands/*/*.js`);
+  const slashFiles = await globPromise(`${process.cwd()}/Modules/DiscordBOT/SlashCommands/*/*.js`);
 
   const arrayOfSlashCommands = [];
   for (const filePath of slashFiles) {
+    console.log(filePath)
     const command = require(filePath);
     if (!command?.name) continue;
 
