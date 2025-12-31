@@ -80,7 +80,7 @@ i18n.configure({
 })
 
 // ———————————————[MYSQL]———————————————
-client.sqlconndata = client.config.datacfg.sql
+client.sqlconndata = client.config.discord.sql
 
 // Initializing the project.
 // ---------------------------------------------------------
