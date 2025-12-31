@@ -1,22 +1,11 @@
-// client.js
-// ---------------------------------------------------------
-// Discord client bootstrap
-// ---------------------------------------------------------
-
 const {
   Client,
   Collection,
   GatewayIntentBits,
-  Partials,
-} = require("discord.js");
-const chalkImport = require("chalk");
-const chalk = chalkImport.default || chalkImport;
-const path = require("path");
-const i18n = require("i18n");
+  Partials
+} = require('discord.js')
 
-// ---------------------------------------------------------
-// Create client instance
-// ---------------------------------------------------------
+// Import Discord.Js.
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -35,7 +24,7 @@ const client = new Client({
     GatewayIntentBits.DirectMessageTyping,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildScheduledEvents,
-    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildVoiceStates
   ],
   partials: [
     Partials.User,
@@ -44,129 +33,156 @@ const client = new Client({
     Partials.Message,
     Partials.Reaction,
     Partials.GuildScheduledEvent,
-    Partials.ThreadMember,
-  ],
-});
+    Partials.ThreadMember
+  ]
+})
 
-// ---------------------------------------------------------
-// Collections & Config
-// ---------------------------------------------------------
-client.aliases = new Collection();
-client.cooldowns = new Collection();
-client.slashCommands = new Collection();
+// Export Client To Give Other Files Access.
+const chalkImport = require('chalk')
+const chalk = chalkImport.default || chalkImport
+// Import Chalk
+const path = require('path')
+// Import Path
 
-client.config = require("../../config/config.json");
-client.sqlconndata = client.config.discord?.sql;
+// ———————————————[Global Variables]———————————————
+client.aliases = new Collection()
+client.cooldowns = new Collection()
+client.slashCommands = new Collection()
+client.config = require('../../config/config.json')
+require('./handler')(client)
 
-// Load handlers (commands/events)
-require("./handler")(client);
+// ———————————————[i18n Data]———————————————
+const i18n = require('i18n')
 
-// ---------------------------------------------------------
-// i18n setup
-// ---------------------------------------------------------
 i18n.configure({
-  locales: ["en", "es", "ko", "fr", "tr", "pt_br", "zh_cn", "zh_tw"],
-  directory: path.join(__dirname, "locales"),
-  defaultLocale: "en",
+  locales: ['en', 'es', 'ko', 'fr', 'tr', 'pt_br', 'zh_cn', 'zh_tw'],
+  directory: path.join(__dirname, 'locales'),
+  defaultLocale: 'en',
   objectNotation: true,
   register: global,
-  logWarnFn: (msg) => console.log("warn", msg),
-  logErrorFn: (msg) => console.log("error", msg),
-  missingKeyFn: (_locale, value) => value,
-  mustacheConfig: { tags: ["{{", "}}"], disable: false },
-});
 
+  logWarnFn: function (msg) {
+    console.log('warn', msg)
+  },
+
+  logErrorFn: function (msg) {
+    console.log('error', msg)
+  },
+
+  missingKeyFn: function (locale, value) {
+    return value
+  },
+
+  mustacheConfig: {
+    tags: ['{{', '}}'],
+    disable: false
+  }
+})
+
+// ———————————————[MYSQL]———————————————
+client.sqlconndata = client.config.datacfg.sql
+
+// Initializing the project.
 // ---------------------------------------------------------
 // Login helper
 // ---------------------------------------------------------
-function discordLogin() {
-  const config  = require("../../config/config.json");
-  const token =
-    process.env.clienttoken || config.discord?.token || "";
-
-  if (!token) {
-    console.log(chalk.gray("—————————————————————————————————"));
+function discordLogin () {
+  // ———————————————[Logging Into Client]———————————————
+  const token = process.env['clienttoken'] || client.config.discord.token
+  if (token === '') {
+    console.log(chalk.gray('—————————————————————————————————'))
     console.log(
+      chalk.white('['),
+      chalk.red.bold('AntiCrash'),
+      chalk.white(']'),
+      chalk.gray(' : '),
+      chalk.white.bold('Invalid Token')
+    )
+    console.log(chalk.gray('—————————————————————————————————'))
+    console.log(chalk.magenta('There Are 3 Ways To Fix This'))
+    console.log(
+      chalk.blue('Put Your ') + chalk.red('Bot Token ') + chalk.blue('in:')
+    )
+    console.log(
+      chalk.yellow.bold('1.) ') +
+        chalk.cyan('index.js') +
+        chalk.gray(
+          " On the client.login line remove client.login(token) and write client.login('Your token')"
+        )
+    )
+    console.log(
+      chalk.yellow.bold('2.) ') +
+        chalk.cyan('ENV/Secrets') +
+        chalk.gray(
+          " If using replit, make new secret named 'clienttoken' and put your token in it else, if your using VsCode, Then Follow Some ENV tutorials (I don't suggest using it in VSC)"
+        )
+    )
+    console.log(
+      chalk.yellow.bold('3.) ') +
+        chalk.cyan('settings.json ') +
+        chalk.gray(
+          'Go To config/settings.json, Find The Line with client.token and put "client.token":"Your Bot Token"'
+        )
+    )
+  } else {
+    client.login(token)
+  }
+}
+
+// Login The Bot.
+// ———————————————[Error Handling]———————————————
+process.on('unhandledRejection', (reason, p) => {
+  if (
+    reason ===
+    'Error [INTERACTION_ALREADY_REPLIED]: The reply to this interaction has already been sent or deferred.'
+  )
+    return
+
+  console.log(chalk.gray('—————————————————————————————————'))
+  console.log(
+    chalk.white('['),
+    chalk.red.bold('AntiCrash'),
+    chalk.white(']'),
+    chalk.gray(' : '),
+    chalk.white.bold('Unhandled Rejection/Catch')
+  )
+  console.log(chalk.gray('—————————————————————————————————'))
+  console.log(reason, p)
+})
+process.on('uncaughtException', (err, origin) => {
+  console.log(chalk.gray('—————————————————————————————————'))
+  console.log(
+    chalk.white('['),
+    chalk.red.bold('AntiCrash'),
+    chalk.white(']'),
+    chalk.gray(' : '),
+    chalk.white.bold('Uncaught Exception/Catch')
+  )
+  console.log(chalk.gray('—————————————————————————————————'))
+  console.log(err, origin)
+})
+
+/*process.on("multipleResolves", (type, promise, reason) => {
+
+   if (reason === "Error: Cannot perform IP discovery - socket closed") return;
+   if (reason === "AbortError: The operation was aborted") return;
+
+   console.log(chalk.gray("—————————————————————————————————"));
+   console.log(
       chalk.white("["),
       chalk.red.bold("AntiCrash"),
       chalk.white("]"),
       chalk.gray(" : "),
-      chalk.white.bold("Invalid or missing token!")
-    );
-    console.log(chalk.gray("—————————————————————————————————"));
-    return;
-  }
-
-  console.log(chalk.gray("—————————————————————————————————"));
-  console.log(
-    chalk.white("["),
-    chalk.green.bold("Discord"),
-    chalk.white("]"),
-    chalk.gray(" : "),
-    chalk.white.bold("Logging in…")
-  );
-  console.log(chalk.gray("—————————————————————————————————"));
-
-  client.login(token).catch(err => {
-    console.error("[Discord] Login failed:", err.message || err);
-  });
-}
-
-// ---------------------------------------------------------
-// Discord debug hooks
-// ---------------------------------------------------------
-client.on("error", err => {
-  console.error("[Discord] Client error:", err.message || err);
-});
-client.on("warn", info => {
-  console.warn("[Discord] Client warn:", info);
-});
-client.on("shardError", err => {
-  console.error("[Discord] Shard error:", err.message || err);
-});
-client.on("invalidated", () => {
-  console.error("[Discord] Client session invalidated.");
-});
-
-// ---------------------------------------------------------
-// Error / crash handlers
-// ---------------------------------------------------------
-process.on("unhandledRejection", (reason, p) => {
-  if (
-    reason ===
-    "Error [INTERACTION_ALREADY_REPLIED]: The reply to this interaction has already been sent or deferred."
-  )
-    return;
-
-  console.log(chalk.gray("—————————————————————————————————"));
-  console.log(
-    chalk.white("["),
-    chalk.red.bold("AntiCrash"),
-    chalk.white("]"),
-    chalk.gray(" : "),
-    chalk.white.bold("Unhandled Rejection")
-  );
-  console.log(chalk.gray("—————————————————————————————————"));
-  console.log(reason, p);
-});
-
-process.on("uncaughtException", (err, origin) => {
-  console.log(chalk.gray("—————————————————————————————————"));
-  console.log(
-    chalk.white("["),
-    chalk.red.bold("AntiCrash"),
-    chalk.white("]"),
-    chalk.gray(" : "),
-    chalk.white.bold("Uncaught Exception")
-  );
-  console.log(chalk.gray("—————————————————————————————————"));
-  console.log(err, origin);
-});
+      chalk.white.bold("Multiple Resolves")
+   );
+   console.log(chalk.gray("—————————————————————————————————"));
+   console.log(type, promise, reason);
+});*/
 
 // ---------------------------------------------------------
 // Exports
 // ---------------------------------------------------------
 module.exports = {
   client,
-  discordLogin,
-};
+  discordLogin
+}
