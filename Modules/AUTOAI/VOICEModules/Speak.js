@@ -538,6 +538,9 @@ async function readAndPrintSentences(sentences, audioFile, messageid) {
   const totalPages = cleanedSentences.length;
   const audioFiles = [];
 
+  stopRenderProgress({ force: true });
+  stopRenderWaitSounds();
+
   for (const cleanSentence of cleanedSentences) {
     const audioFileAi = await runTTSRVC(
       prepareTtsText(cleanSentence.replace('[BROADCAST] ', '').replace('\n', '')),
@@ -547,9 +550,6 @@ async function readAndPrintSentences(sentences, audioFile, messageid) {
     );
     audioFiles.push(audioFileAi);
   }
-
-  stopRenderProgress({ force: true });
-  stopRenderWaitSounds();
 
   for (let i = 0; i < cleanedSentences.length; i++) {
     const sentence = cleanedSentences[i];

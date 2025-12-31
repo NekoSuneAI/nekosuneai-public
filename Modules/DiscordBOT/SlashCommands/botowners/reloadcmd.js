@@ -1,6 +1,7 @@
 const { EmbedBuilder, PermissionFlagsBits, ApplicationCommandType, ApplicationCommandOptionType } = require("discord.js");
 const glob = require("glob");
-const chalk = require("chalk");
+const chalkImport = require("chalk");
+const chalk = chalkImport.default || chalkImport;
 const { clientname, clientavatar } = require("../../../../config/config.json");
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { REST } = require('@discordjs/rest');

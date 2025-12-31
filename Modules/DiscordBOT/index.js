@@ -59,7 +59,9 @@ client.config = require("../../config/config.json");
 client.sqlconndata = client.config.discord?.sql;
 
 // Load handlers (commands/events)
-require("./handler")(client);
+Promise.resolve(require("./handler")(client)).catch(err => {
+  console.error("[Discord] Handler load failed:", err.message || err);
+});
 
 // ---------------------------------------------------------
 // i18n setup
@@ -107,8 +109,33 @@ function discordLogin() {
   );
   console.log(chalk.gray("—————————————————————————————————"));
 
-  client.login(token);
+  console.log(
+    chalk.gray("[Discord] Login attempt:"),
+    chalk.white(`token length ${token.length}`)
+  );
+  client.login(token).catch(err => {
+    console.error("[Discord] Login failed:", err.message || err);
+  });
 }
+
+// ---------------------------------------------------------
+// Discord debug hooks
+// ---------------------------------------------------------
+client.on("ready", () => {
+  console.log(chalk.green("[Discord] Client ready event fired."));
+});
+client.on("error", err => {
+  console.error("[Discord] Client error:", err.message || err);
+});
+client.on("warn", info => {
+  console.warn("[Discord] Client warn:", info);
+});
+client.on("shardError", err => {
+  console.error("[Discord] Shard error:", err.message || err);
+});
+client.on("invalidated", () => {
+  console.error("[Discord] Client session invalidated.");
+});
 
 // ---------------------------------------------------------
 // Error / crash handlers

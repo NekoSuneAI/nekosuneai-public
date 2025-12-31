@@ -2,7 +2,8 @@ const { glob } = require("glob");
 const { promisify } = require("util");
 const globPromise = promisify(glob);
 const mainjson = require("../../../config/config.json");
-const chalk = require("chalk");
+const chalkImport = require("chalk");
+const chalk = chalkImport.default || chalkImport;
 const path = require("path");
 
 module.exports = async (client) => {

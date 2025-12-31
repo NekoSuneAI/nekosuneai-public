@@ -11,6 +11,12 @@ const checkCondition = text => {
   ) {
     return "timeQuery";
   } else if (
+    lowerText.includes("new year") ||
+    lowerText.includes("new years") ||
+    lowerText.includes("new year's")
+  ) {
+    return "newYearQuery";
+  } else if (
     lowerText.includes("what is weather in") ||
     lowerText.includes("what is weather at") ||
     lowerText.includes("what is the weather at") ||
@@ -282,6 +288,27 @@ async function RunCommands(audioFile, result, messageid) {
           }
           const datafound = `Time in ${originalText}: ${resp.ampm}`;
           writeToLogFile("[TimeZone API] Recognized: " + datafound);
+          const responsetext = [datafound];
+          await readAndPrintSentences(responsetext, audioFile, messageid);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+      break;
+    case "newYearQuery":
+      {
+        const { NewYearCountdownGrabber } = require("../AddonsModules/API/NewYear");
+        const originalText = result[0].text.toLowerCase();
+        try {
+          const resp = await NewYearCountdownGrabber(originalText);
+          if (!resp || resp.error) {
+            const msg = "Sorry, I couldn't find that location.";
+            writeToLogFile("[NewYear] Error: " + (resp?.error || "Unknown location."));
+            await readAndPrintSentences([msg], audioFile, messageid);
+            break;
+          }
+          const datafound = `There are ${resp.hours} hours, ${resp.minutes} minutes, and ${resp.seconds} seconds until New Year's in ${resp.location}.`;
+          writeToLogFile("[NewYear] Recognized: " + datafound);
           const responsetext = [datafound];
           await readAndPrintSentences(responsetext, audioFile, messageid);
         } catch (error) {
