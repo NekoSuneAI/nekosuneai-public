@@ -307,7 +307,10 @@ async function RunCommands(audioFile, result, messageid) {
             await readAndPrintSentences([msg], audioFile, messageid);
             break;
           }
-          const datafound = `There are ${resp.hours} hours, ${resp.minutes} minutes, and ${resp.seconds} seconds until New Year's in ${resp.location}.`;
+          const hasDays = typeof resp.days === "number" && resp.days > 0;
+          const datafound = hasDays
+            ? `There are ${resp.days} days, ${resp.hours} hours, ${resp.minutes} minutes, and ${resp.seconds} seconds until New Year's in ${resp.location}.`
+            : `There are ${resp.hours} hours, ${resp.minutes} minutes, and ${resp.seconds} seconds until New Year's in ${resp.location}.`;
           writeToLogFile("[NewYear] Recognized: " + datafound);
           const responsetext = [datafound];
           await readAndPrintSentences(responsetext, audioFile, messageid);

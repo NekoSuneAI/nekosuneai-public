@@ -1,4 +1,5 @@
 const { timezone } = require("../../../config");
+const { getNewYearCountdown } = require("newyear-tz-countdown");
 
 const defaultTimeZonesByName = {
   "united states": "America/New_York",
@@ -134,59 +135,6 @@ function processText(originalText, commandPatterns) {
   return originalText;
 }
 
-function getParts(date, timeZone) {
-  const dtf = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-    hourCycle: "h23"
-  });
-  const parts = dtf.formatToParts(date);
-  const map = {};
-  for (const part of parts) {
-    if (part.type !== "literal") {
-      map[part.type] = part.value;
-    }
-  }
-  return map;
-}
-
-function getTimeZoneOffsetMinutes(date, timeZone) {
-  const parts = getParts(date, timeZone);
-  const utcMs = Date.UTC(
-    Number(parts.year),
-    Number(parts.month) - 1,
-    Number(parts.day),
-    Number(parts.hour),
-    Number(parts.minute),
-    Number(parts.second)
-  );
-  return (utcMs - date.getTime()) / 60000;
-}
-
-function zonedTimeToUtc(year, month, day, hour, minute, second, timeZone) {
-  const utcMs = Date.UTC(year, month - 1, day, hour, minute, second);
-  const offsetMinutes = getTimeZoneOffsetMinutes(new Date(utcMs), timeZone);
-  return utcMs - offsetMinutes * 60000;
-}
-
-function getZonedUtcMs(date, timeZone) {
-  const parts = getParts(date, timeZone);
-  return Date.UTC(
-    Number(parts.year),
-    Number(parts.month) - 1,
-    Number(parts.day),
-    Number(parts.hour),
-    Number(parts.minute),
-    Number(parts.second)
-  );
-}
-
 async function NewYearCountdownGrabber(originalText) {
   try {
     const commandPatterns = [
@@ -224,31 +172,14 @@ async function NewYearCountdownGrabber(originalText) {
       return { error: `No timezone match for: ${cleanedQuery}` };
     }
 
-    const now = new Date();
-    const parts = getParts(now, timeZone);
-    const localYear = Number(parts.year);
-    const targetYear = localYear + 1;
-    const targetUtcMs = zonedTimeToUtc(
-      targetYear,
-      1,
-      1,
-      0,
-      0,
-      0,
-      timeZone
-    );
-
-    const nowUtcMs = getZonedUtcMs(now, timeZone);
-    let diffMs = targetUtcMs - nowUtcMs;
-    diffMs = Math.max(0, diffMs);
-    const totalHours = Math.floor(diffMs / 3600000);
-    const minutes = Math.floor((diffMs % 3600000) / 60000);
-    const seconds = Math.floor((diffMs % 60000) / 1000);
+    const countdown = getNewYearCountdown(timeZone);
 
     return {
-      hours: totalHours,
-      minutes,
-      seconds,
+      days: countdown.days,
+      hours: countdown.hours,
+      minutes: countdown.minutes,
+      seconds: countdown.seconds,
+      targetYear: countdown.targetYear,
       location: locationLabel,
       timeZone
     };
