@@ -1,9 +1,8 @@
-const { client } = require("../index");
+const client = require("../index");
 const i18n = require("i18n");
 const ms = require("ms");
-const fetch = require("node-fetch");
 const { EmbedBuilder } = require("discord.js");
-const main_cfg = require("../../../config/config.json");
+const main_cfg = require("../config/settings.json");
 
 i18n.setLocale("en");
 
@@ -13,12 +12,12 @@ client.on("interactionCreate", async (interaction) => {
         // Get the command object
         const cmd = client.slashCommands.get(interaction.commandName.toLowerCase());
         if (!cmd) {
-            console.error(`Command "${interaction.commandName}" not found.`);
-            return interaction.reply({
-                content: "An error has occurred. Command not found. ❌",
-                ephemeral: true,
-            });
-        }
+    		console.error(`Command "${interaction.commandName}" not found.`);
+    		return interaction.reply({
+        		content: "An error has occurred. Command not found. ❌",
+        		ephemeral: true,
+    		});
+		}
 
         const args = [];
 
@@ -33,27 +32,15 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         // Get the member from the guild
-        if (!interaction.guild) {
-            return interaction.reply({
-                content: "This command can only be used in a server. ❌",
-                ephemeral: true,
-            });
-        }
-        interaction.member =
-            interaction.guild.members.cache.get(interaction.user.id) ||
-            (await interaction.guild.members.fetch(interaction.user.id).catch(() => null));
-        const botMember =
-            interaction.guild.members.me ||
-            interaction.guild.members.cache.get(client.user.id) ||
-            (await interaction.guild.members.fetch(client.user.id).catch(() => null));
+        interaction.member = interaction.guild.members.cache.get(interaction.user.id);
 
         // Check voice channel conditions for commands requiring voice channel interaction
         if (cmd.voiceChannel) {
-            if (!interaction.member?.voice?.channel) {
-                return interaction.reply({ content: `You are not connected to an audio channel. ❌`, ephemeral: true });
+            if (!interaction.member.voice.channel) {
+                return interaction.followUp({ content: `You are not connected to an audio channel. ❌`, ephemeral: true });
             }
-            if (botMember?.voice?.channel && interaction.member.voice.channel.id !== botMember.voice.channel.id) {
-                return interaction.reply({ content: `You are not on the same audio channel as me. ❌`, ephemeral: true });
+            if (interaction.guild.me.voice.channel && interaction.member.voice.channel.id !== interaction.guild.me.voice.channel.id) {
+                return interaction.followUp({ content: `You are not on the same audio channel as me. ❌`, ephemeral: true });
             }
         }
 
@@ -67,7 +54,7 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         // Permission checks
-        if (!interaction.member?.permissions?.has(cmd.userpermissions || [])) {
+        if (!interaction.member.permissions.has(cmd.userpermissions || [])) {
             let userperms_embed = new EmbedBuilder()
                 .setTitle(`:x: | You Don't Have Permissions To Use The Command!`)
                 .setColor(0x0099FF)
@@ -75,7 +62,7 @@ client.on("interactionCreate", async (interaction) => {
             return interaction.reply({ embeds: [userperms_embed] });
         }
 
-        if (!botMember?.permissions?.has(cmd.botpermissions || [])) {
+        if (!interaction.guild.members.me.permissions.has(cmd.botpermissions || [])) {
             let botperms_embed = new EmbedBuilder()
                 .setTitle(`:x: | I Don't Have Permissions To Use The Command!`)
                 .setColor(0x0099FF)
@@ -85,38 +72,13 @@ client.on("interactionCreate", async (interaction) => {
 
         // Check if the command is restricted to developers
         if (cmd.developersOnly) {
-            if (!main_cfg.discord.developerID.includes(interaction.member.id)) {
+            if (!main_cfg.botcfg.developerID.includes(interaction.member.id)) {
                 let developersOnly_embed = new EmbedBuilder()
                     .setTitle(`:x: | Only Developers Can Use That Command!`)
-                    .setDescription(`Developers: ${main_cfg.discord.developerID.map((v) => `<@${v}>`).join(",")}`)
+                    .setDescription(`Developers: ${main_cfg.botcfg.developerID.map((v) => `<@${v}>`).join(",")}`)
                     .setColor(0x0099FF)
                     .setTimestamp();
                 return interaction.reply({ embeds: [developersOnly_embed] });
-            }
-        }
-
-        // Patreon-only command check
-        if (cmd.patreonOnly) {
-            let patreonsOnly_embed = new EmbedBuilder()
-                .setTitle(`:x: | Only Patreon Users Can Use That Command!`)
-                .setDescription(`You can pay £1 a month to gain access to this command!`)
-                .setColor(0x0099FF)
-                .setTimestamp();
-
-            if (cmd.patreonManualWhitelist[0] == undefined) {
-                const response = await fetch(`https://api.nekosunevr.co.uk/v3/payments/api/patreon/check/${interaction.member.id}`);
-                const patreoncheck = await response.json();
-
-                if (patreoncheck.error === 404 || patreoncheck.patron_status === "declined_patron" || patreoncheck.patron_status === "account_doesnt_exist") {
-                    return interaction.reply({ embeds: [patreonsOnly_embed] });
-                }
-            } else if (!cmd.patreonManualWhitelist.includes(interaction.member.id)) {
-                const response = await fetch(`https://api.nekosunevr.co.uk/v3/payments/api/patreon/check/${interaction.member.id}`);
-                const patreoncheck = await response.json();
-
-                if (patreoncheck.error === 404 || patreoncheck.patron_status === "declined_patron" || patreoncheck.patron_status === "account_doesnt_exist") {
-                    return interaction.reply({ embeds: [patreonsOnly_embed] });
-                }
             }
         }
 
@@ -125,7 +87,7 @@ client.on("interactionCreate", async (interaction) => {
             const cooldownKey = `${cmd.name}${interaction.member.id}`;
             if (client.cooldowns.has(cooldownKey)) {
                 let cooldown_embed = new EmbedBuilder()
-                    .setTitle(`${main_cfg.discord.randomMessages_Cooldown[Math.floor(Math.random() * main_cfg.discord.randomMessages_Cooldown.length)]}`)
+                    .setTitle(`${main_cfg.botcfg.randomMessages_Cooldown[Math.floor(Math.random() * main_cfg.botcfg.randomMessages_Cooldown.length)]}`)
                     .setDescription(`You need to wait \`${ms(client.cooldowns.get(cooldownKey) - Date.now(), { long: true })}\` to use \`/${cmd.name}\` again!`)
                     .setColor(0x0099FF)
                     .setTimestamp();
@@ -139,16 +101,16 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         try {
-            // Run the command
-            await cmd.run(client, interaction, args);
-        } catch (error) {
-            console.error(`Error executing command "${interaction.commandName}":`, error);
-            // Send an error message to the user
-            return interaction.reply({
-                content: "An unexpected error occurred while executing this command. ❌",
-                ephemeral: true,
-            });
-        }
+    		// Run the command
+    		await cmd.run(client, interaction, args);
+		} catch (error) {
+    		console.error(`Error executing command "${interaction.commandName}":`, error);
+    		// Send an error message to the user
+    		return interaction.reply({
+        		content: "An unexpected error occurred while executing this command. ❌",
+        		ephemeral: true,
+    		});
+		}
     }
 
     // ———————————————[Buttons]———————————————
