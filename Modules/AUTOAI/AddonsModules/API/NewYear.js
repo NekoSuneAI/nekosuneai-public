@@ -134,7 +134,22 @@ async function NewYearCountdownGrabber(originalText) {
       timeZone
     );
 
-    const diffMs = Math.max(0, targetUtcMs - now.getTime());
+    let diffMs = targetUtcMs - now.getTime();
+    if (diffMs <= 0) {
+      const targetLocal = new Date(Date.UTC(targetYear, 0, 1, 0, 0, 0));
+      const targetInTz = new Date(
+        targetLocal.toLocaleString("en-US", { timeZone })
+      );
+      diffMs = targetInTz.getTime() - now.getTime();
+      if (diffMs <= 0) {
+        const nextTargetLocal = new Date(Date.UTC(targetYear + 1, 0, 1, 0, 0, 0));
+        const nextTargetInTz = new Date(
+          nextTargetLocal.toLocaleString("en-US", { timeZone })
+        );
+        diffMs = nextTargetInTz.getTime() - now.getTime();
+      }
+    }
+    diffMs = Math.max(0, diffMs);
     const totalHours = Math.floor(diffMs / 3600000);
     const minutes = Math.floor((diffMs % 3600000) / 60000);
     const seconds = Math.floor((diffMs % 60000) / 1000);
