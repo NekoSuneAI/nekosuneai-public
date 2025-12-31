@@ -33,15 +33,27 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         // Get the member from the guild
-        interaction.member = interaction.guild.members.cache.get(interaction.user.id);
+        if (!interaction.guild) {
+            return interaction.reply({
+                content: "This command can only be used in a server. ❌",
+                ephemeral: true,
+            });
+        }
+        interaction.member =
+            interaction.guild.members.cache.get(interaction.user.id) ||
+            (await interaction.guild.members.fetch(interaction.user.id).catch(() => null));
+        const botMember =
+            interaction.guild.members.me ||
+            interaction.guild.members.cache.get(client.user.id) ||
+            (await interaction.guild.members.fetch(client.user.id).catch(() => null));
 
         // Check voice channel conditions for commands requiring voice channel interaction
         if (cmd.voiceChannel) {
-            if (!interaction.member.voice.channel) {
-                return interaction.followUp({ content: `You are not connected to an audio channel. ❌`, ephemeral: true });
+            if (!interaction.member?.voice?.channel) {
+                return interaction.reply({ content: `You are not connected to an audio channel. ❌`, ephemeral: true });
             }
-            if (interaction.guild.me.voice.channel && interaction.member.voice.channel.id !== interaction.guild.me.voice.channel.id) {
-                return interaction.followUp({ content: `You are not on the same audio channel as me. ❌`, ephemeral: true });
+            if (botMember?.voice?.channel && interaction.member.voice.channel.id !== botMember.voice.channel.id) {
+                return interaction.reply({ content: `You are not on the same audio channel as me. ❌`, ephemeral: true });
             }
         }
 
@@ -55,7 +67,7 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         // Permission checks
-        if (!interaction.member.permissions.has(cmd.userpermissions || [])) {
+        if (!interaction.member?.permissions?.has(cmd.userpermissions || [])) {
             let userperms_embed = new EmbedBuilder()
                 .setTitle(`:x: | You Don't Have Permissions To Use The Command!`)
                 .setColor(0x0099FF)
@@ -63,7 +75,7 @@ client.on("interactionCreate", async (interaction) => {
             return interaction.reply({ embeds: [userperms_embed] });
         }
 
-        if (!interaction.guild.members.me.permissions.has(cmd.botpermissions || [])) {
+        if (!botMember?.permissions?.has(cmd.botpermissions || [])) {
             let botperms_embed = new EmbedBuilder()
                 .setTitle(`:x: | I Don't Have Permissions To Use The Command!`)
                 .setColor(0x0099FF)
