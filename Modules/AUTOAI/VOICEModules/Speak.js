@@ -393,18 +393,81 @@ function replaceCurrencyValues(text) {
     '$': { word: 'dollars', cents: true },
     '£': { word: 'pounds', cents: true },
     '€': { word: 'euros', cents: true },
-    '¥': { word: 'yen', cents: false }
-  };
-  const codeMap = {
-    USD: { word: 'dollars', cents: true },
-    GBP: { word: 'pounds', cents: true },
-    EUR: { word: 'euros', cents: true },
-    JPY: { word: 'yen', cents: false }
+    '¥': { word: 'yen', cents: false },
+    '₽': { word: 'rubles', cents: true },
+    '₹': { word: 'rupees', cents: true },
+    '₩': { word: 'won', cents: false },
+    '₺': { word: 'lira', cents: true },
+    '₫': { word: 'dong', cents: false },
+    '₱': { word: 'pesos', cents: true },
+    '฿': { word: 'baht', cents: true },
+    '₪': { word: 'shekels', cents: true },
+    '₴': { word: 'hryvnia', cents: true },
+    '₦': { word: 'naira', cents: true },
+    'R$': { word: 'reals', cents: true },
+    '₪': { word: 'shekels', cents: true },
+    '₡': { word: 'colones', cents: true },
+    '₲': { word: 'guarani', cents: true },
+    '₵': { word: 'cedis', cents: true }
   };
 
-  const symbolPattern = /([$£€¥])\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/g;
-  const codePrefixPattern = /\b(USD|GBP|EUR|JPY)\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/gi;
-  const codeSuffixPattern = /\b(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(USD|GBP|EUR|JPY)\b/gi;
+  const codeMap = {
+    USD: { word: 'US dollars', cents: true },
+    GBP: { word: 'pounds', cents: true },
+    EUR: { word: 'euros', cents: true },
+    JPY: { word: 'yen', cents: false },
+    RUB: { word: 'rubles', cents: true },
+    CAD: { word: 'Canadian dollars', cents: true },
+    AUD: { word: 'Australian dollars', cents: true },
+    NZD: { word: 'New Zealand dollars', cents: true },
+    CHF: { word: 'francs', cents: true },
+    CNY: { word: 'yuan', cents: true },
+    HKD: { word: 'Hong Kong dollars', cents: true },
+    SGD: { word: 'Singapore dollars', cents: true },
+    INR: { word: 'rupees', cents: true },
+    BRL: { word: 'reals', cents: true },
+    MXN: { word: 'pesos', cents: true },
+    ZAR: { word: 'rand', cents: true },
+    KRW: { word: 'won', cents: false },
+    TRY: { word: 'lira', cents: true },
+    PLN: { word: 'zloty', cents: true },
+    CZK: { word: 'koruna', cents: true },
+    HUF: { word: 'forint', cents: false },
+    RON: { word: 'lei', cents: true },
+    BGN: { word: 'lev', cents: true },
+    NOK: { word: 'krone', cents: true },
+    SEK: { word: 'krona', cents: true },
+    DKK: { word: 'krone', cents: true },
+    AED: { word: 'dirhams', cents: true },
+    SAR: { word: 'riyals', cents: true },
+    QAR: { word: 'riyals', cents: true },
+    KWD: { word: 'dinars', cents: true },
+    BHD: { word: 'dinars', cents: true },
+    OMR: { word: 'rials', cents: true },
+    ILS: { word: 'shekels', cents: true },
+    THB: { word: 'baht', cents: true },
+    IDR: { word: 'rupiah', cents: true },
+    MYR: { word: 'ringgit', cents: true },
+    PHP: { word: 'pesos', cents: true },
+    VND: { word: 'dong', cents: false },
+    CLP: { word: 'pesos', cents: false },
+    COP: { word: 'pesos', cents: true },
+    ARS: { word: 'pesos', cents: true },
+    PEN: { word: 'soles', cents: true },
+    UAH: { word: 'hryvnia', cents: true },
+    NGN: { word: 'naira', cents: true },
+    EGP: { word: 'Egyptian pounds', cents: true },
+    ISK: { word: 'krona', cents: false }
+  };
+
+  const symbolKeys = Object.keys(symbolMap)
+    .sort((a, b) => b.length - a.length)
+    .map(s => s.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'));
+  const symbolPattern = new RegExp(`(${symbolKeys.join('|')})\\s*(\\d{1,3}(?:,\\d{3})*(?:\\.\\d+)?)`, 'g');
+
+  const codeKeys = Object.keys(codeMap).join('|');
+  const codePrefixPattern = new RegExp(`\\b(${codeKeys})\\s*(\\d{1,3}(?:,\\d{3})*(?:\\.\\d+)?)`, 'gi');
+  const codeSuffixPattern = new RegExp(`\\b(\\d{1,3}(?:,\\d{3})*(?:\\.\\d+)?)\\s*(${codeKeys})\\b`, 'gi');
 
   let result = text.replace(symbolPattern, (_, symbol, number) => {
     const entry = symbolMap[symbol];
@@ -449,8 +512,6 @@ function waitMs(ms) {
 }
 
 async function readAndPrintSentencesAdminCmds(sentences, audioFile, messageid) {
-  const { startRecordingAndRunDeepSpeech } = require("../VOICEModules/Main");
-  const { isMicDisabled } = require("./VoiceState");
   const {
     sendToWebhookchatResponse
   } = require("../AddonsModules/API/Webhooks");
@@ -472,9 +533,6 @@ async function readAndPrintSentencesAdminCmds(sentences, audioFile, messageid) {
   const totalPages = cleanedSentences.length;
   const audioFiles = [];
 
-  stopRenderProgress({ force: true });
-  stopRenderWaitSounds();
-
   for (const cleanSentence of cleanedSentences) {
     const audioFileAi = await runTTSRVC(
       prepareTtsText(cleanSentence.replace('[BROADCAST] ', '').replace('\n', '')),
@@ -484,6 +542,9 @@ async function readAndPrintSentencesAdminCmds(sentences, audioFile, messageid) {
     );
     audioFiles.push(audioFileAi);
   }
+
+  stopRenderProgress({ force: true });
+  stopRenderWaitSounds();
 
   for (let i = 0; i < cleanedSentences.length; i++) {
     const sentence = cleanedSentences[i];
@@ -538,9 +599,6 @@ async function readAndPrintSentences(sentences, audioFile, messageid) {
   const totalPages = cleanedSentences.length;
   const audioFiles = [];
 
-  stopRenderProgress({ force: true });
-  stopRenderWaitSounds();
-
   for (const cleanSentence of cleanedSentences) {
     const audioFileAi = await runTTSRVC(
       prepareTtsText(cleanSentence.replace('[BROADCAST] ', '').replace('\n', '')),
@@ -550,6 +608,9 @@ async function readAndPrintSentences(sentences, audioFile, messageid) {
     );
     audioFiles.push(audioFileAi);
   }
+
+  stopRenderProgress({ force: true });
+  stopRenderWaitSounds();
 
   for (let i = 0; i < cleanedSentences.length; i++) {
     const sentence = cleanedSentences[i];
