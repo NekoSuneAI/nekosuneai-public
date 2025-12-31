@@ -260,7 +260,7 @@ async function generateTts(
 }
 
 function stripEmojis(text) {
-  return text.replace(/[\p{Emoji_Presentation}\p{Emoji}\u200d]+/gu, '').trim();
+  return text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\u200d\uFE0F]+/gu, '').trim();
 }
 
 const digitWords = [
