@@ -38,6 +38,7 @@ set "PATH=%CD%\%SOX_DIR%;%PATH%"
 :: --- Step 3: Install node modules ---
 if not exist node_modules (
     echo Installing node modules...
+    npm rebuild speaker
     npm install
 )
 
