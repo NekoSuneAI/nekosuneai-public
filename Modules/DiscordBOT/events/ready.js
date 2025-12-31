@@ -1,5 +1,6 @@
 const client = require("../index");
-const chalk = require("chalk");
+const chalkImport = require("chalk");
+const chalk = chalkImport.default || chalkImport;
 const { version: discordjsVersion, ActivityType } = require("discord.js");
 const pjson = require("../package.json");
 
