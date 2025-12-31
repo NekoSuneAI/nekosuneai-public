@@ -1,11 +1,95 @@
 const { timezone } = require("../../../config");
 
+const defaultTimeZonesByName = {
+  "united states": "America/New_York",
+  "canada": "America/Toronto",
+  "russian federation": "Europe/Moscow",
+  "australia": "Australia/Sydney",
+  "brazil": "America/Sao_Paulo",
+  "mexico": "America/Mexico_City"
+};
+
 function findCountryByName(countryName) {
   const lowerCasecountryName = countryName.toLowerCase();
-  const foundCountry = timezone.find(
+  const matches = timezone.filter(
     country => country.countryName.toLowerCase() === lowerCasecountryName
   );
-  return foundCountry || null;
+  if (matches.length === 0) {
+    return null;
+  }
+  if (matches.length === 1) {
+    return matches[0];
+  }
+  const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const localMatch = matches.find(entry => entry.timeZone === localTz);
+  if (localMatch) {
+    return localMatch;
+  }
+  const preferred = defaultTimeZonesByName[lowerCasecountryName];
+  if (preferred) {
+    const preferredMatch = matches.find(entry => entry.timeZone === preferred);
+    if (preferredMatch) {
+      return preferredMatch;
+    }
+  }
+  return matches[0];
+}
+
+const aliasMap = {
+  uk: "United Kingdom",
+  "u k": "United Kingdom",
+  "u.k": "United Kingdom",
+  "u.k.": "United Kingdom",
+  gb: "United Kingdom",
+  "great britain": "United Kingdom",
+  britain: "United Kingdom",
+  england: "United Kingdom",
+  scotland: "United Kingdom",
+  wales: "United Kingdom",
+  "northern ireland": "United Kingdom",
+  us: "United States",
+  "u s": "United States",
+  "u.s": "United States",
+  "u.s.": "United States",
+  usa: "United States",
+  "u s a": "United States",
+  "u.s.a": "United States",
+  "united states of america": "United States",
+  uae: "United Arab Emirates"
+};
+
+const defaultTimeZonesByCode = {
+  US: "America/New_York",
+  CA: "America/Toronto",
+  RU: "Europe/Moscow",
+  AU: "Australia/Sydney",
+  BR: "America/Sao_Paulo",
+  MX: "America/Mexico_City"
+};
+
+function findCountryByAlias(normalizedQuery) {
+  const alias = aliasMap[normalizedQuery];
+  if (!alias) return null;
+  return findCountryByName(alias);
+}
+
+function findCountryByCode(normalizedQuery) {
+  const code = (normalizedQuery || "").toUpperCase();
+  if (!code || code.length > 3) return null;
+  const matches = timezone.filter(
+    entry => (entry.CountryCode || "").toUpperCase() === code
+  );
+  if (matches.length === 0) return null;
+  if (matches.length === 1) return matches[0];
+  const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const localMatch = matches.find(entry => entry.timeZone === localTz);
+  if (localMatch) return localMatch;
+  const preferred = defaultTimeZonesByCode[code];
+  if (preferred) {
+    const preferredMatch = matches.find(entry => entry.timeZone === preferred);
+    if (preferredMatch) return preferredMatch;
+  }
+  return matches[0];
 }
 
 function normalizeForMatch(text) {
@@ -59,7 +143,8 @@ function getParts(date, timeZone) {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    hour12: false
+    hour12: false,
+    hourCycle: "h23"
   });
   const parts = dtf.formatToParts(date);
   const map = {};
@@ -90,6 +175,18 @@ function zonedTimeToUtc(year, month, day, hour, minute, second, timeZone) {
   return utcMs - offsetMinutes * 60000;
 }
 
+function getZonedUtcMs(date, timeZone) {
+  const parts = getParts(date, timeZone);
+  return Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second)
+  );
+}
+
 async function NewYearCountdownGrabber(originalText) {
   try {
     const commandPatterns = [
@@ -106,6 +203,13 @@ async function NewYearCountdownGrabber(originalText) {
 
     if (cleanedQuery) {
       foundCountry = findCountryByName(cleanedQuery);
+      if (!foundCountry) {
+        const normalizedQuery = normalizeForMatch(cleanedQuery);
+        foundCountry = findCountryByAlias(normalizedQuery);
+        if (!foundCountry) {
+          foundCountry = findCountryByCode(normalizedQuery);
+        }
+      }
     }
     if (!foundCountry) {
       foundCountry = findCountryInText(originalText);
@@ -134,21 +238,8 @@ async function NewYearCountdownGrabber(originalText) {
       timeZone
     );
 
-    let diffMs = targetUtcMs - now.getTime();
-    if (diffMs <= 0) {
-      const targetLocal = new Date(Date.UTC(targetYear, 0, 1, 0, 0, 0));
-      const targetInTz = new Date(
-        targetLocal.toLocaleString("en-US", { timeZone })
-      );
-      diffMs = targetInTz.getTime() - now.getTime();
-      if (diffMs <= 0) {
-        const nextTargetLocal = new Date(Date.UTC(targetYear + 1, 0, 1, 0, 0, 0));
-        const nextTargetInTz = new Date(
-          nextTargetLocal.toLocaleString("en-US", { timeZone })
-        );
-        diffMs = nextTargetInTz.getTime() - now.getTime();
-      }
-    }
+    const nowUtcMs = getZonedUtcMs(now, timeZone);
+    let diffMs = targetUtcMs - nowUtcMs;
     diffMs = Math.max(0, diffMs);
     const totalHours = Math.floor(diffMs / 3600000);
     const minutes = Math.floor((diffMs % 3600000) / 60000);
