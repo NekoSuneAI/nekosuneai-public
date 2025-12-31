@@ -62,6 +62,29 @@ function getTimeFromTimestamp(timestamp) {
   return hours + ":" + minutes;
 }
 
+function getTimeParts(timeZone) {
+  const now = new Date();
+  const parts12 = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
+  }).formatToParts(now);
+  const hour12 = parts12.find(part => part.type === "hour")?.value || "12";
+  const minute12 = parts12.find(part => part.type === "minute")?.value || "00";
+  const dayPeriod = parts12.find(part => part.type === "dayPeriod")?.value || "AM";
+  const ampm = `${hour12}:${minute12} ${dayPeriod}`;
+
+  const time24 = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  }).format(now);
+
+  return { ampm, time24 };
+}
+
 async function TimezonesGrabber(originalText) {
   try {
     const commandPatterns = [
@@ -78,18 +101,12 @@ async function TimezonesGrabber(originalText) {
       return { error: `No timezone match for: ${cleanedQuery}` };
     }
 
-    // Get the current time in the specified region
-    const selectedTime = new Date().toLocaleString("en-US", {
-      timeZone: foundCountry.timeZone
-    });
-
-    // Convert the time string to a Date object
-    const localTime = new Date(selectedTime);
-
-    // Format the time into AM/PM format
-    const formattedTime = formatAMPM(localTime);
-
-    return { ampm: formattedTime, time: getTimeFromTimestamp(localTime) };
+    const timeInfo = getTimeParts(foundCountry.timeZone);
+    return {
+      ampm: timeInfo.ampm,
+      time: timeInfo.time24,
+      location: foundCountry.countryName
+    };
   } catch (error) {
     console.error("Error fetching time data:", error);
     return null;
