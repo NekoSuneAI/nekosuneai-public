@@ -8,6 +8,32 @@ function findCountryByName(countryName) {
   return foundCountry || null;
 }
 
+function normalizeForMatch(text) {
+  return (text || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function findCountryInText(text) {
+  const normalizedText = normalizeForMatch(text);
+  if (!normalizedText) return null;
+  const candidates = timezone
+    .map(entry => ({
+      entry,
+      name: normalizeForMatch(entry.countryName)
+    }))
+    .filter(item => item.name);
+  candidates.sort((a, b) => b.name.length - a.name.length);
+  for (const item of candidates) {
+    if (normalizedText.includes(item.name)) {
+      return item.entry;
+    }
+  }
+  return null;
+}
+
 function processText(originalText, commandPatterns) {
   originalText = originalText.toLowerCase();
   commandPatterns.forEach(function (pattern) {
@@ -76,16 +102,22 @@ async function NewYearCountdownGrabber(originalText) {
     const cleanedQuery = processText(originalText, commandPatterns);
     let timeZone = null;
     let locationLabel = cleanedQuery;
+    let foundCountry = null;
+
     if (cleanedQuery) {
-      const foundCountry = findCountryByName(cleanedQuery);
-      if (!foundCountry || !foundCountry.timeZone) {
-        return { error: `No timezone match for: ${cleanedQuery}` };
-      }
+      foundCountry = findCountryByName(cleanedQuery);
+    }
+    if (!foundCountry) {
+      foundCountry = findCountryInText(originalText);
+    }
+    if (foundCountry && foundCountry.timeZone) {
       timeZone = foundCountry.timeZone;
       locationLabel = foundCountry.countryName;
-    } else {
+    } else if (!cleanedQuery) {
       timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       locationLabel = timeZone || "your area";
+    } else {
+      return { error: `No timezone match for: ${cleanedQuery}` };
     }
 
     const now = new Date();
