@@ -174,6 +174,8 @@ async function NewYearCountdownGrabber(originalText) {
 
     const countdown = getNewYearCountdown(timeZone);
 
+    console.log(countdown)
+
     return {
       days: countdown.days,
       hours: countdown.hours,
