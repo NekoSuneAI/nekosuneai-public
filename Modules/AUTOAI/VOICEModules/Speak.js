@@ -360,6 +360,60 @@ function numberStringToWords(text) {
   return `${intWords} point ${fracWords}`;
 }
 
+function currencyNumberToWords(numberText, currencyWord, useCents) {
+  const normalized = numberText.replace(/,/g, '');
+  const parts = normalized.split('.');
+  const intWords = integerToWords(parts[0]);
+  if (!intWords) return '';
+  const major = `${intWords} ${currencyWord}`;
+  if (!useCents || parts.length === 1) return major;
+  const frac = parts[1] || '';
+  if (!frac) return major;
+  const centsValue = frac.slice(0, 2);
+  const centsWords = integerToWords(centsValue);
+  if (!centsWords || centsValue === '00') return major;
+  return `${major} and ${centsWords} cents`;
+}
+
+function replaceCurrencyValues(text) {
+  const symbolMap = {
+    '$': { word: 'dollars', cents: true },
+    '£': { word: 'pounds', cents: true },
+    '€': { word: 'euros', cents: true },
+    '¥': { word: 'yen', cents: false }
+  };
+  const codeMap = {
+    USD: { word: 'dollars', cents: true },
+    GBP: { word: 'pounds', cents: true },
+    EUR: { word: 'euros', cents: true },
+    JPY: { word: 'yen', cents: false }
+  };
+
+  const symbolPattern = /([$£€¥])\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/g;
+  const codePrefixPattern = /\b(USD|GBP|EUR|JPY)\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/gi;
+  const codeSuffixPattern = /\b(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(USD|GBP|EUR|JPY)\b/gi;
+
+  let result = text.replace(symbolPattern, (_, symbol, number) => {
+    const entry = symbolMap[symbol];
+    const words = currencyNumberToWords(number, entry.word, entry.cents);
+    return words || `${symbol} ${number}`;
+  });
+
+  result = result.replace(codePrefixPattern, (_, code, number) => {
+    const entry = codeMap[code.toUpperCase()];
+    const words = currencyNumberToWords(number, entry.word, entry.cents);
+    return words || `${code} ${number}`;
+  });
+
+  result = result.replace(codeSuffixPattern, (_, number, code) => {
+    const entry = codeMap[code.toUpperCase()];
+    const words = currencyNumberToWords(number, entry.word, entry.cents);
+    return words || `${number} ${code}`;
+  });
+
+  return result;
+}
+
 function numbersToWords(text) {
   const numberPattern = /\b\d{1,3}(?:,\d{3})*(?:\.\d+)?\b/g;
   return text.replace(numberPattern, match => {
@@ -373,7 +427,8 @@ function prepareTtsText(text) {
     return '';
   }
   const withoutUrls = stripHttpUrls(text);
-  return numbersToWords(withoutUrls);
+  const withCurrencies = replaceCurrencyValues(withoutUrls);
+  return numbersToWords(withCurrencies);
 }
 
 function waitMs(ms) {
