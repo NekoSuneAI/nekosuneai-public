@@ -2490,6 +2490,12 @@
     "GMTOffset": "UTC +12:00"
   },
   {
+    "CountryCode": "EH",
+    "countryName": "Western Sahara",
+    "timeZone": "Africa/El_Aaiun",
+    "GMTOffset": "UTC"
+  },
+  {
     "CountryCode": "YE",
     "countryName": "Yemen",
     "timeZone": "Asia/Aden",
