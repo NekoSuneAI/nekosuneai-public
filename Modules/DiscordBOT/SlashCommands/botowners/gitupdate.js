@@ -7,8 +7,6 @@ module.exports = {
     cooldowns: 3000,
     toggleOff: false,
     developersOnly: true,
-    patreonOnly: false,
-    patreonManualWhitelist: [],
     userpermissions: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.ViewChannel],
     botpermissions: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.ViewChannel],
  

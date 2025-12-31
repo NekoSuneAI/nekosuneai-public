@@ -19,8 +19,6 @@ module.exports = {
     description: "VRChat Admin Prompt Command",
     toggleOff: false,
     developersOnly: true,
-    patreonOnly: false,
-    patreonManualWhitelist: [],
     type: ApplicationCommandType.ChatInput,
     userpermissions: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.ViewChannel],
     botpermissions: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.ViewChannel],

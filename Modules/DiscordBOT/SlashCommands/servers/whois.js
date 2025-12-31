@@ -8,8 +8,6 @@ module.exports = {
     type: ApplicationCommandType.ChatInput,
     toggleOff: false,
     developersOnly: false,
-    patreonOnly: false,
-    patreonManualWhitelist: [],
     userpermissions: [PermissionFlagsBits.Administrator],
     botpermissions: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.ViewChannel],
     cooldowns: 2000,

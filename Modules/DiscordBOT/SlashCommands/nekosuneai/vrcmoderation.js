@@ -24,8 +24,6 @@ module.exports = {
   description: 'VRChat Moderation Command',
   toggleOff: false,
   developersOnly: true,
-  patreonOnly: false,
-  patreonManualWhitelist: [],
   type: ApplicationCommandType.ChatInput,
   userpermissions: [
     PermissionFlagsBits.SendMessages,
