@@ -3,6 +3,17 @@ const { config, packageJson } = require('../../config')
 const { BOTAPIPOINT } = require('./Web')
 
 const WebSocketClient = require('websocket').client //npm websocket
+if (!Promise.withResolvers) {
+  Promise.withResolvers = function () {
+    let resolve
+    let reject
+    const promise = new Promise((res, rej) => {
+      resolve = res
+      reject = rej
+    })
+    return { promise, resolve, reject }
+  }
+}
 const { VRChat, VRChatError } = require('vrchat') //npm vrchat
 //require('log-timestamp');                 //npm log-timestamp
 const twofactor = require('node-2fa')
