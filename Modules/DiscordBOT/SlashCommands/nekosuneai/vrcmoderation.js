@@ -12,7 +12,6 @@ const {
 const path = require('path')
 const fs = require('fs')
 
-const { startStream, stopStream } = require('../../../Addons/VRChatStream')
 const { captureVRChat } = require('../../../Addons/screenshot')
 const { resetMemory } = require('../../../Addons/memoryStore')
 const {
@@ -40,25 +39,13 @@ module.exports = {
       type: ApplicationCommandOptionType.String,
       required: true,
       choices: [
-        { name: 'vrcaudio', value: 'vrcaudio' },
         { name: 'screenshot', value: 'screenshot' },
         { name: 'reset', value: 'reset' }
-      ]
-    },
-    {
-      name: 'voicemode',
-      description: 'start or stop VRChat audio stream',
-      type: ApplicationCommandOptionType.String,
-      required: false,
-      choices: [
-        { name: 'start', value: 'start' },
-        { name: 'stop', value: 'stop' }
       ]
     }
   ],
   run: async (client, interaction, args) => {
     const action = interaction.options.getString('action')
-    const voicemode = interaction.options.getString('voicemode')
     const rootDir = path.resolve(__dirname, '../../../../')
 
     if (!action) {
@@ -67,21 +54,7 @@ module.exports = {
         ephemeral: true
       })
     }
-    if (action === 'vrcaudio') {
-      if (voicemode) {
-        const vc = interaction.member.voice.channel
-        if (!vc)
-          return interaction.reply({
-            content: 'Join a voice channel first.',
-            ephemeral: true
-          })
-
-        const reply =
-          action === 'start' ? await startStream(vc) : await stopStream()
-
-        return interaction.reply({ content: reply, ephemeral: true })
-      }
-    } else if (action === 'screenshot') {
+    if (action === 'screenshot') {
       // build unique file name: vrchat_2025-09-22_10-35-12.png
       const timestamp = new Date()
         .toISOString()
