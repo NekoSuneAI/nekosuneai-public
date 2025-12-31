@@ -1,5 +1,5 @@
 const { timezone } = require("../../../config");
-const { getNewYearCountdown } = require("newyear-tz-countdown");
+const { getNewYearCountdown } = require("@nekosuneprojects/newyear-tz-countdown");
 
 const defaultTimeZonesByName = {
   "united states": "America/New_York",
