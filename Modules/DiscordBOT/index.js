@@ -59,9 +59,7 @@ client.config = require("../../config/config.json");
 client.sqlconndata = client.config.discord?.sql;
 
 // Load handlers (commands/events)
-Promise.resolve(require("./handler")(client)).catch(err => {
-  console.error("[Discord] Handler load failed:", err.message || err);
-});
+require("./handler")(client);
 
 // ---------------------------------------------------------
 // i18n setup
@@ -109,10 +107,6 @@ function discordLogin() {
   );
   console.log(chalk.gray("—————————————————————————————————"));
 
-  console.log(
-    chalk.gray("[Discord] Login attempt:"),
-    chalk.white(`token length ${token.length}`)
-  );
   client.login(token).catch(err => {
     console.error("[Discord] Login failed:", err.message || err);
   });
@@ -121,9 +115,6 @@ function discordLogin() {
 // ---------------------------------------------------------
 // Discord debug hooks
 // ---------------------------------------------------------
-client.on("ready", () => {
-  console.log(chalk.green("[Discord] Client ready event fired."));
-});
 client.on("error", err => {
   console.error("[Discord] Client error:", err.message || err);
 });

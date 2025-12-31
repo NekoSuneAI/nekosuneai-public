@@ -1,6 +1,7 @@
 const { glob } = require("glob");
 const { promisify } = require("util");
 const globPromise = promisify(glob);
+const { Client, Collection, ApplicationCommandType } = require("discord.js");
 const mainjson = require("../../../config/config.json");
 const chalkImport = require("chalk");
 const chalk = chalkImport.default || chalkImport;
@@ -8,26 +9,69 @@ const path = require("path");
 
 module.exports = async (client) => {
   const baseDir = path.join(process.cwd(), "Modules", "DiscordBOT");
-  // ———————————————[Events]———————————————
+   // ———————————————[Events]———————————————
   const eventFiles = await globPromise(`${baseDir}/events/*.js`);
-  eventFiles.map((value) => require(value));
+  for (const file of eventFiles) {
+    // Each event module should self-register on require()
+    require(file);
+  }
 
   // ———————————————[Slash Commands]———————————————
-  const slashCommands = await globPromise(
-    `${baseDir}/SlashCommands/*/*.js`
-  );
+  const slashFiles = await globPromise(`${baseDir}/SlashCommands/*/*.js`);
 
   const arrayOfSlashCommands = [];
-  slashCommands.map((value) => {
-    const file = require(value);
-    if (!file?.name) return;
-    const splitted = value.split("/");
-    const directory = splitted[splitted.length - 2];
-    const properties = { directory, ...file };
-    client.slashCommands.set(file.name, properties);
+  for (const filePath of slashFiles) {
+    const command = require(filePath);
+    if (!command?.name) continue;
 
-    if (["MESSAGE", "USER"].includes(file.type)) delete file.description;
-    arrayOfSlashCommands.push(file);
+    // store for runtime usage
+    const directory = filePath.split("/").slice(-2, -1)[0];
+    const properties = { directory, ...command };
+    client.slashCommands.set(command.name, properties);
+
+    // prepare data for registration
+    const reg = { ...command };
+
+    // Back-compat for type strings
+    if (reg.type === "MESSAGE") reg.type = ApplicationCommandType.Message;
+    if (reg.type === "USER") reg.type = ApplicationCommandType.User;
+
+    // DJS requirement: Message/User commands don’t use description
+    if (reg.type === ApplicationCommandType.Message || reg.type === ApplicationCommandType.User) {
+      delete reg.description;
+    }
+
+    arrayOfSlashCommands.push(reg);
+  }
+
+  // ———————————————[Registration on Ready]———————————————
+  client.once("ready", async () => {
+    try {
+      // Sometimes client.application is null right after ready; fetch it to hydrate.
+      await client.application?.fetch();
+
+      const app = client.application;
+      if (!app) {
+        console.warn(chalk.yellow("[SlashCmds] client.application not available yet. Retrying in 2s…"));
+        setTimeout(async () => {
+          try {
+            await client.application?.fetch();
+            if (!client.application) {
+              console.error(chalk.red("[SlashCmds] client.application still null; aborting registration."));
+              return;
+            }
+            await registerCommands(client, arrayOfSlashCommands);
+          } catch (e) {
+            logRegError(e);
+          }
+        }, 2000);
+        return;
+      }
+
+      await registerCommands(client, arrayOfSlashCommands);
+    } catch (e) {
+      logRegError(e);
+    }
   });
   
   client.on("ready", async () => {
