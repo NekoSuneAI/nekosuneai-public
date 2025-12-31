@@ -72,10 +72,10 @@ client.on("interactionCreate", async (interaction) => {
 
         // Check if the command is restricted to developers
         if (cmd.developersOnly) {
-            if (!main_cfg.botcfg.developerID.includes(interaction.member.id)) {
+            if (!main_cfg.discord.developerID.includes(interaction.member.id)) {
                 let developersOnly_embed = new EmbedBuilder()
                     .setTitle(`:x: | Only Developers Can Use That Command!`)
-                    .setDescription(`Developers: ${main_cfg.botcfg.developerID.map((v) => `<@${v}>`).join(",")}`)
+                    .setDescription(`Developers: ${main_cfg.discord.developerID.map((v) => `<@${v}>`).join(",")}`)
                     .setColor(0x0099FF)
                     .setTimestamp();
                 return interaction.reply({ embeds: [developersOnly_embed] });
@@ -87,7 +87,7 @@ client.on("interactionCreate", async (interaction) => {
             const cooldownKey = `${cmd.name}${interaction.member.id}`;
             if (client.cooldowns.has(cooldownKey)) {
                 let cooldown_embed = new EmbedBuilder()
-                    .setTitle(`${main_cfg.botcfg.randomMessages_Cooldown[Math.floor(Math.random() * main_cfg.botcfg.randomMessages_Cooldown.length)]}`)
+                    .setTitle(`${main_cfg.discord.randomMessages_Cooldown[Math.floor(Math.random() * main_cfg.discord.randomMessages_Cooldown.length)]}`)
                     .setDescription(`You need to wait \`${ms(client.cooldowns.get(cooldownKey) - Date.now(), { long: true })}\` to use \`/${cmd.name}\` again!`)
                     .setColor(0x0099FF)
                     .setTimestamp();

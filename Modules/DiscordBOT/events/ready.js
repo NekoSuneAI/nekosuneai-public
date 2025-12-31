@@ -79,8 +79,8 @@ client.once("ready", async () => {
   }
 
   // Initialize support server and channel references
-  GuildChis = client.guilds.cache.get(client.config.botcfg.TestingServerID) ?? null;
-  ChannelChis = GuildChis?.channels?.cache?.get(client.config.botcfg.TestingServerCID) ?? null;
+  GuildChis = client.guilds.cache.get(client.config.discord.TestingServerID) ?? null;
+  ChannelChis = GuildChis?.channels?.cache?.get(client.config.discord.TestingServerCID) ?? null;
 
   if (!ChannelChis) {
     console.log(chalk.red.bold("——————————[SERVER CHECK]——————————"));
@@ -117,7 +117,4 @@ client.once("ready", async () => {
       `Memory: ${(mem.rss / 1024 / 1024).toFixed(2)} MB RSS | ${(mem.heapUsed / 1024 / 1024).toFixed(2)} MB Heap`
     )
   );
-
-  // Optional: log blacklist counts if you use them elsewhere
-  console.log(chalk.gray(`Blacklist: ${blockServers} servers, ${blockUsers} users`));
 });
