@@ -70,6 +70,7 @@ if exist "%ROOT%node_modules" (
     echo   WARNING: npm not available. Skipping install.
   ) else (
     echo   Running: npm install
+    call npm rebuild speaker
     call npm install
     if errorlevel 1 (
       echo   ERROR: npm install failed.
