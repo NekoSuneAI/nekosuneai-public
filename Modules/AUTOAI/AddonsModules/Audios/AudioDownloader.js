@@ -255,6 +255,14 @@ async function convertToPcmWav(inputPath) {
     const fs = require("fs");
     const path = require("path");
     const ffmpeg = require("fluent-ffmpeg");
+    try {
+      const ffmpegPath = require("ffmpeg-static");
+      if (ffmpegPath) {
+        ffmpeg.setFfmpegPath(ffmpegPath);
+      }
+    } catch (err) {
+      console.warn("[Audio] ffmpeg-static not available:", err?.message || err);
+    }
     const base = path.basename(inputPath, path.extname(inputPath));
     const outPath = path.join(path.dirname(inputPath), `${base}-pcm.wav`);
     if (fs.existsSync(outPath)) {
