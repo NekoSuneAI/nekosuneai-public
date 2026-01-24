@@ -1,4 +1,4 @@
-const { windowManager } = require('node-window-manager');
+/*const { windowManager } = require('node-window-manager');
 const screenshot = require('screenshot-desktop');
 const sharp = require('sharp');
 
@@ -30,7 +30,7 @@ async function captureVRChat(outPath = 'vrchat.png') {
     .toFile(outPath);
 
   return outPath;
-}
+}*/
 
 module.exports = {
   captureVRChat
