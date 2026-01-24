@@ -120,6 +120,33 @@ function clearActiveStreams() {
   }
 }
 
+function playWithWindowsSoundPlayer(audioPath) {
+  const { spawn } = require("child_process");
+  if (process.platform !== "win32") {
+    return Promise.resolve(false);
+  }
+  return new Promise(resolve => {
+    const escapedPath = audioPath.replace(/'/g, "''");
+    const psCommand = [
+      "try {",
+      "$player = New-Object System.Media.SoundPlayer",
+      `$player.SoundLocation = '${escapedPath}'`,
+      "$player.Load()",
+      "$player.PlaySync()",
+      "exit 0",
+      "} catch {",
+      "exit 1",
+      "}"
+    ].join(" ");
+    const child = spawn("powershell.exe", ["-NoProfile", "-Command", psCommand], {
+      windowsHide: true,
+      stdio: "ignore"
+    });
+    child.on("error", () => resolve(false));
+    child.on("exit", code => resolve(code === 0));
+  });
+}
+
 // Function to audio
 function playAudioSound(audioPath, volume = 1) {
   const fs = require("fs");
@@ -252,7 +279,18 @@ function playAudioTTS(audioPath) {
       resolve();
     };
 
-    const startupWatchdog = setTimeout(() => {
+    const startupWatchdog = setTimeout(async () => {
+      console.warn("[Audio] TTS did not start playback; trying system player.");
+      try {
+        clearActiveStreams();
+        const ok = await playWithWindowsSoundPlayer(audioPath);
+        if (ok) {
+          console.log("[Audio] TTS played via system player.");
+          return done();
+        }
+      } catch (err) {
+        console.warn("[Audio] System player failed:", err?.message || err);
+      }
       console.warn("[Audio] TTS did not start playback; skipping.");
       stopWaitAudio();
       done();
