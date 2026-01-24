@@ -1,5 +1,12 @@
-const fetch = require("node-fetch");
+const fetch = global.fetch;
 const { config } = require("../../../config");
+
+function requireFetch() {
+  if (typeof fetch !== "function") {
+    throw new Error("Global fetch is not available. Use Node.js 20+ or install a fetch polyfill.");
+  }
+  return fetch;
+}
 
 function normalizeBaseUrl(baseUrl) {
   return (baseUrl || "").replace(/\/+$/, "");
@@ -41,7 +48,8 @@ async function SearxngGrabber(query, maxResults = 5) {
       return { error: "SearxNG baseURL is not configured." };
     }
     const url = `${baseUrl}/search?q=${encodeURIComponent(query)}&format=json`;
-    const res = await fetch(url);
+    const fetchImpl = requireFetch();
+    const res = await fetchImpl(url);
     if (!res.ok) {
       return { error: `SearxNG error: ${res.status}` };
     }

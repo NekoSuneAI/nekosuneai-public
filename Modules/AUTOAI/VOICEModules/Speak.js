@@ -10,9 +10,16 @@ const { writeFile } = require("fs").promises;
 
 const fsn = require("fs");
 const path = require("path");
-const fetch = require("node-fetch");
 const axios = require("axios");
 const { Blob } = require("buffer");
+const fetch = global.fetch;
+
+function requireFetch() {
+  if (typeof fetch !== "function") {
+    throw new Error("Global fetch is not available. Use Node.js 20+ or install a fetch polyfill.");
+  }
+  return fetch;
+}
 
 async function runTTSRVC(text, voicegender, voice, TTS_DIR) {
     await fsn.promises.mkdir(TTS_DIR, { recursive: true });
@@ -111,8 +118,12 @@ async function runTTSRVC(text, voicegender, voice, TTS_DIR) {
     // -----------------------------------
     // 4. Download final WAV file
     // -----------------------------------
-    const res = await fetch(fileUrl);
-    const finalBuffer = await res.buffer();
+    const fetchImpl = requireFetch();
+    const res = await fetchImpl(fileUrl);
+    if (!res.ok) {
+      throw new Error(`Failed to download TTS file: ${res.status}`);
+    }
+    const finalBuffer = Buffer.from(await res.arrayBuffer());
 
     const finalFile = path.join(
         TTS_DIR,

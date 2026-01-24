@@ -1,6 +1,6 @@
 const { config } = require("./Modules/config");
 
-const sequelize = require('./Modules/Addons/db');
+const { sequelize } = require('./Modules/Addons/db');
 const Message = require('./Modules/models/Message');
 
 const {
@@ -22,7 +22,11 @@ const chalk = chalkImport.default || chalkImport;
 if (config.addons.AI.toggle == true) {
   startRecordingAndRunDeepSpeech();
   (async () => {
-    await sequelize.sync();
+    if (sequelize) {
+      await sequelize.sync();
+    } else {
+      console.warn('[DB] Skipping sqlite sync (sqlite3 not installed).');
+    }
   })();
 }
 

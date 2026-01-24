@@ -21,7 +21,26 @@ const { isMicDisabled } = require("./VoiceState");
 
 const fs = require("fs");
 const path = require("path");
-const record = require("node-record-lpcm16");
+let record = null;
+let recordLoadError = null;
+let recordWarned = false;
+try {
+  record = require("node-record-lpcm16");
+} catch (err) {
+  recordLoadError = err;
+}
+
+function getRecorder() {
+  if (record) return record;
+  if (!recordWarned) {
+    recordWarned = true;
+    console.warn(
+      "[Voice] 'node-record-lpcm16' is unavailable. Install it to enable mic recording.",
+      recordLoadError ? recordLoadError.message : ""
+    );
+  }
+  return null;
+}
 const FormData = require("form-data");
 const { config } = require("../../config");
 
@@ -41,10 +60,15 @@ function startRecordingAndRunDeepSpeech() {
     writeToLogFile("Mic disabled: skipping recording start.");
     return;
   }
+  const recorderImpl = getRecorder();
+  if (!recorderImpl) {
+    writeToLogFile("Mic recording is unavailable (missing node-record-lpcm16).");
+    return;
+  }
   const audioFile = path.join(DIRECTORY, "audio.wav");
   const renamedAudioFile = path.join(DIRECTORY, "recognized_audio.wav");
   // Initialize the audio recorder (replace with your actual initialization logic)
-  const recorder = record.record({
+  const recorder = recorderImpl.record({
     sampleRate: 16000,
     endOnSilence: true,
     recorder: "sox"

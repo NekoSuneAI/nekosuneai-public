@@ -79,7 +79,26 @@ async function DownloadFile(source, mp3Url, filepath, filename) {
   }
 }
 
-const Speaker = require("speaker");
+let Speaker = null;
+let speakerLoadError = null;
+let speakerWarned = false;
+try {
+  Speaker = require("speaker");
+} catch (err) {
+  speakerLoadError = err;
+}
+
+function getSpeaker() {
+  if (Speaker) return Speaker;
+  if (!speakerWarned) {
+    speakerWarned = true;
+    console.warn(
+      "[Audio] 'speaker' module is unavailable. Install it to enable local playback.",
+      speakerLoadError ? speakerLoadError.message : ""
+    );
+  }
+  return null;
+}
 
 let currentSpeakersound = null;
 
@@ -88,6 +107,10 @@ function playAudioSound(audioPath, volume = 1) {
   const fs = require("fs");
   const wav = require("wav");
   const { Transform } = require("stream");
+  const SpeakerCtor = getSpeaker();
+  if (!SpeakerCtor) {
+    return Promise.resolve();
+  }
   if (currentSpeakersound) {
     currentSpeakersound.end();
     currentSpeakersound.close();
@@ -131,7 +154,7 @@ function playAudioSound(audioPath, volume = 1) {
           }
         }));
       }
-      const speaker = new Speaker(format);
+      const speaker = new SpeakerCtor(format);
       currentSpeakersound = speaker;
       audioStream.pipe(speaker);
       speaker.on("close", finish);
@@ -158,9 +181,9 @@ function stopAudioSound() {
 
 function playAudioTTS(audioPath) {
   const fs = require("fs");
-  const Speaker = require("speaker");
+  const SpeakerCtor = getSpeaker();
   
-  if (!audioPath) return Promise.resolve();
+  if (!audioPath || !SpeakerCtor) return Promise.resolve();
 
   const fileStream = fs.createReadStream(audioPath);
   const reader = new wav.Reader();
@@ -168,7 +191,7 @@ function playAudioTTS(audioPath) {
   return new Promise(resolve => {
     // This will be fired when the WAV header is parsed
     reader.on("format", function (format) {
-      const speaker = new Speaker(format);
+      const speaker = new SpeakerCtor(format);
       reader.pipe(speaker);
       speaker.on("close", () => resolve());
       speaker.on("finish", () => resolve());

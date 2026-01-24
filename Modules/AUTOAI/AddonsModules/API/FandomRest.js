@@ -1,4 +1,11 @@
-const fetch = require("node-fetch");
+const fetch = global.fetch;
+
+function requireFetch() {
+  if (typeof fetch !== "function") {
+    throw new Error("Global fetch is not available. Use Node.js 20+ or install a fetch polyfill.");
+  }
+  return fetch;
+}
 
 /**
  * Fetch article text from VRChat-Legends Fandom REST API
@@ -7,7 +14,8 @@ const fetch = require("node-fetch");
 async function FandomGrabber(query) {
   try {
     const url = `https://vrchat-legends.fandom.com/rest.php/v1/page/${encodeURIComponent(query)}`;
-    const res = await fetch(url);
+    const fetchImpl = requireFetch();
+    const res = await fetchImpl(url);
     if (!res.ok) throw new Error(`Fandom REST error: ${res.status}`);
     const data = await res.json();
 

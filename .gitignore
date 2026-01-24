@@ -17,6 +17,7 @@ Modules/sounds/*.wav
 audio/recognized_audio.wav
 python-portable/
 piper/
+node_modulesttt/
 model/
 tools/
 config/memory.sqlite

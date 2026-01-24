@@ -2,7 +2,7 @@ const { config, packageJson } = require('../../config')
 
 const { BOTAPIPOINT } = require('./Web')
 
-const WebSocketClient = require('websocket').client //npm websocket
+const WebSocket = require('ws')
 if (!Promise.withResolvers) {
   Promise.withResolvers = function () {
     let resolve
@@ -17,7 +17,14 @@ if (!Promise.withResolvers) {
 const { VRChat, VRChatError } = require('vrchat') //npm vrchat
 //require('log-timestamp');                 //npm log-timestamp
 const twofactor = require('node-2fa')
-const fetch = require('node-fetch')
+const fetch = global.fetch
+
+function requireFetch () {
+  if (typeof fetch !== 'function') {
+    throw new Error('Global fetch is not available. Use Node.js 20+ or install a fetch polyfill.')
+  }
+  return fetch
+}
 
 const { Client, Message } = require('node-osc')
 
@@ -71,7 +78,8 @@ async function getCurrentUserWithLogin () {
 async function safeBlacklistCheck (userId) {
   try {
     const url = `https://nekologger.nekosunevr.co.uk/v5/games/api/vrchat/yoinker/check/${userId}`
-    const res = await fetch(url)
+    const fetchImpl = requireFetch()
+    const res = await fetchImpl(url)
     if (!res.ok) return null
     const contentType = res.headers.get('content-type') || ''
     if (!contentType.includes('application/json')) return null
@@ -107,41 +115,34 @@ async function VRCFriends () {
     Auth_Cookie: authToken
   }
   //console.log(authToken)
-  var client = new WebSocketClient()
+  const wsUrl = 'wss://pipeline.vrchat.cloud/?authToken=' + authToken
 
-  client.on('connectFailed', function (error) {
-    console.log('Connect Error: ' + error.toString())
-  })
+  const connectWebSocket = () => {
+    const connection = new WebSocket(wsUrl, 'echo-protocol', {
+      headers: {
+        'User-Agent': userAgent
+      }
+    })
 
-  client.on('connect', function (connection) {
-    console.log('WebSocket Client Connected')
-    BOTAPIPOINT()
-    connection.on('error', function (error) {
+    connection.on('open', () => {
+      console.log('WebSocket Client Connected')
+      BOTAPIPOINT()
+    })
+
+    connection.on('error', error => {
       console.log('Connection Error: ' + error.toString())
     })
 
-    connection.on('close', function () {
+    connection.on('close', () => {
       console.log('echo-protocol Connection Closed')
-      //sleep(2000);
-      client.connect(
-        'wss://pipeline.vrchat.cloud/?authToken=' + authToken,
-        'echo-protocol',
-        null,
-        {
-          'User-Agent': userAgent
-        }
-      )
+      setTimeout(connectWebSocket, 2000)
     })
 
-    //Handling incoming messages, parsing etc
-    connection.on('message', function (message) {
-      if (!message.type === 'utf8') {
-        return console.error('Message is not of type "UTF8"')
-      }
-
+    // Handling incoming messages, parsing etc
+    connection.on('message', data => {
+      const payload = typeof data === 'string' ? data : data.toString()
       try {
-        let parsedMessage
-        parsedMessage = JSON.parse(message.utf8Data)
+        let parsedMessage = JSON.parse(payload)
 
         if (parsedMessage.type == 'friend-online') {
           parsedMessage = JSON.parse(parsedMessage.content)
@@ -198,16 +199,9 @@ async function VRCFriends () {
         )
       }
     })
-  })
+  }
 
-  client.connect(
-    'wss://pipeline.vrchat.cloud/?authToken=' + authToken,
-    'echo-protocol',
-    null,
-    {
-      'User-Agent': userAgent
-    }
-  )
+  connectWebSocket()
 
   // HANDLING A RECIEVED MESSAGE
   function HandleNotification (notification) {
@@ -295,7 +289,7 @@ async function VRCFriends () {
         })
         console.log(`Friend Request Accepted on ${data.senderUsername}`)
         await sleep(3000)
-        fetch(`http://localhost:9065/v4/self/get`)
+        requireFetch()(`http://localhost:9065/v4/self/get`)
           .then(res => res.json())
           .then(async resp => {
             await sleep(3000)
@@ -326,7 +320,7 @@ async function VRCFriends () {
           throwOnError: true
         })
         await sleep(3000)
-        fetch(`http://localhost:9065/v4/self/get`)
+        requireFetch()(`http://localhost:9065/v4/self/get`)
           .then(res => res.json())
           .then(async resp => {
             await sleep(3000)
