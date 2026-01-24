@@ -357,10 +357,57 @@ function playAudioTTS(audioPath) {
     // This will be fired when the WAV header is parsed
     reader.on("format", function (format) {
       clearTimeout(startupWatchdog);
-      const speaker = new SpeakerCtor(format);
+      console.log("[Audio] TTS format:", JSON.stringify({
+        audioFormat: format.audioFormat,
+        bitDepth: format.bitDepth,
+        sampleRate: format.sampleRate,
+        channels: format.channels,
+        float: format.float
+      }));
+      let audioStream = reader;
+      let outFormat = format;
+      if (format.float || format.audioFormat === 3 || format.bitDepth !== 16) {
+        outFormat = {
+          ...format,
+          audioFormat: 1,
+          bitDepth: 16,
+          signed: true
+        };
+        const { Transform } = require("stream");
+        audioStream = reader.pipe(new Transform({
+          transform(chunk, encoding, callback) {
+            try {
+              let buffer;
+              if (format.float || format.audioFormat === 3) {
+                const floatArray = new Float32Array(chunk.buffer, chunk.byteOffset, Math.floor(chunk.length / 4));
+                buffer = Buffer.alloc(floatArray.length * 2);
+                for (let i = 0; i < floatArray.length; i++) {
+                  let sample = Math.max(-1, Math.min(1, floatArray[i]));
+                  const intSample = Math.round(sample * 32767);
+                  buffer.writeInt16LE(intSample, i * 2);
+                }
+              } else if (format.bitDepth === 32) {
+                const sampleCount = Math.floor(chunk.length / 4);
+                buffer = Buffer.alloc(sampleCount * 2);
+                for (let i = 0; i < sampleCount; i++) {
+                  const int32 = chunk.readInt32LE(i * 4);
+                  const int16 = Math.max(-32768, Math.min(32767, int32 >> 16));
+                  buffer.writeInt16LE(int16, i * 2);
+                }
+              } else {
+                buffer = chunk;
+              }
+              callback(null, buffer);
+            } catch (err) {
+              callback(err);
+            }
+          }
+        }));
+      }
+      const speaker = new SpeakerCtor(outFormat);
       currentSpeakersound = speaker;
       currentAudioLabel = "tts";
-      reader.pipe(speaker);
+      audioStream.pipe(speaker);
       const finish = () => {
         if (currentSpeakersound === speaker) {
           currentSpeakersound = null;
