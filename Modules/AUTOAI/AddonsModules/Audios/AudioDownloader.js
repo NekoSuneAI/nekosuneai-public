@@ -185,6 +185,12 @@ function playAudioTTS(audioPath) {
   
   if (!audioPath || !SpeakerCtor) return Promise.resolve();
 
+  if (currentSpeakersound) {
+    currentSpeakersound.end();
+    currentSpeakersound.close();
+    currentSpeakersound = null;
+  }
+
   const fileStream = fs.createReadStream(audioPath);
   const reader = new wav.Reader();
 
@@ -192,9 +198,17 @@ function playAudioTTS(audioPath) {
     // This will be fired when the WAV header is parsed
     reader.on("format", function (format) {
       const speaker = new SpeakerCtor(format);
+      currentSpeakersound = speaker;
       reader.pipe(speaker);
-      speaker.on("close", () => resolve());
-      speaker.on("finish", () => resolve());
+      const finish = () => {
+        if (currentSpeakersound === speaker) {
+          currentSpeakersound = null;
+        }
+        resolve();
+      };
+      speaker.on("close", finish);
+      speaker.on("finish", finish);
+      speaker.on("error", finish);
     });
 
     reader.on("end", () => resolve());
