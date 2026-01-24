@@ -294,7 +294,6 @@ function playAudioTTS(audioPath) {
       console.warn("[Audio] TTS file error:", err?.message || err);
       done();
     });
-    fileStream.on("close", done);
     fileStream.pipe(reader);
   });
 }
