@@ -1,5 +1,5 @@
 const { sendMSGOSC } = require("../AddonsModules/OSC/Send");
-const { playAudioSound, playAudioTTS, stopAudioSound, isAudioPlaying } = require("../AddonsModules/Audios/AudioDownloader");
+const { playAudioSound, playAudioTTS, stopWaitAudio, isAudioPlaying } = require("../AddonsModules/Audios/AudioDownloader");
 
 const { writeToLogFile } = require("./LogFiles");
 const { isAdminPromptActive } = require("./VoiceState");
@@ -206,7 +206,7 @@ function startRenderProgress(durationSeconds = 60) {
   let cancelled = false;
   stopWaitLoop = () => {
     cancelled = true;
-    stopAudioSound();
+    stopWaitAudio();
   };
   (async () => {
     while (!cancelled) {
@@ -239,7 +239,7 @@ function stopRenderProgress(options = {}) {
   const force = options && options.force === true;
   if (isAdminPromptActive() && !force) {
     stopRenderWaitSounds();
-    stopAudioSound();
+    stopWaitAudio();
     return;
   }
   if (stopRenderInterval) {
@@ -247,7 +247,7 @@ function stopRenderProgress(options = {}) {
     stopRenderInterval = null;
   }
   stopRenderWaitSounds();
-  stopAudioSound();
+  stopWaitAudio();
 }
 
 // Generate TTS audio using piper-tts
