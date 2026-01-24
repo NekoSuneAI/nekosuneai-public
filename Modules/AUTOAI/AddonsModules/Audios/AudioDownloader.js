@@ -250,6 +250,33 @@ function stopWaitAudio() {
   stopAudioSound();
 }
 
+async function convertToPcmWav(inputPath) {
+  try {
+    const fs = require("fs");
+    const path = require("path");
+    const ffmpeg = require("fluent-ffmpeg");
+    const base = path.basename(inputPath, path.extname(inputPath));
+    const outPath = path.join(path.dirname(inputPath), `${base}-pcm.wav`);
+    if (fs.existsSync(outPath)) {
+      return outPath;
+    }
+    await new Promise((resolve, reject) => {
+      ffmpeg()
+        .input(inputPath)
+        .audioCodec("pcm_s16le")
+        .audioBitrate(1411)
+        .format("wav")
+        .on("end", resolve)
+        .on("error", reject)
+        .save(outPath);
+    });
+    return outPath;
+  } catch (err) {
+    console.warn("[Audio] PCM convert failed:", err?.message || err);
+    return null;
+  }
+}
+
 function playAudioTTS(audioPath) {
   const fs = require("fs");
   const path = require("path");
@@ -261,6 +288,8 @@ function playAudioTTS(audioPath) {
 
   const resolvedPath = path.resolve(audioPath);
   console.log(`[Audio] TTS start: ${resolvedPath}`);
+  let playbackPath = resolvedPath;
+  let cleanupPath = null;
   try {
     if (!fs.existsSync(resolvedPath)) {
       console.warn(`[Audio] TTS file missing: ${resolvedPath}`);
@@ -271,22 +300,12 @@ function playAudioTTS(audioPath) {
       console.warn(`[Audio] TTS file too small to play: ${resolvedPath}`);
       return Promise.resolve();
     }
-    const header = Buffer.alloc(12);
-    const fd = fs.openSync(resolvedPath, "r");
-    fs.readSync(fd, header, 0, 12, 0);
-    fs.closeSync(fd);
-    const riff = header.slice(0, 4).toString("ascii");
-    const wave = header.slice(8, 12).toString("ascii");
-    if (riff !== "RIFF" || wave !== "WAVE") {
-      console.warn(`[Audio] TTS file not RIFF/WAVE: ${resolvedPath}`);
-      return Promise.resolve();
-    }
   } catch (err) {
     console.warn("[Audio] TTS file check failed:", err.message || err);
     return Promise.resolve();
   }
 
-  const fileStream = fs.createReadStream(resolvedPath);
+  const fileStream = fs.createReadStream(playbackPath);
   const reader = new wav.Reader();
   currentFileStream = fileStream;
   currentReader = reader;
@@ -305,13 +324,24 @@ function playAudioTTS(audioPath) {
       console.warn("[Audio] TTS did not start playback; trying system player.");
       try {
         clearActiveStreams();
-        const ok = await playWithWindowsSoundPlayer(resolvedPath);
+        const ok = await playWithWindowsSoundPlayer(playbackPath);
         if (ok) {
           console.log("[Audio] TTS played via system player.");
           return done();
         }
       } catch (err) {
         console.warn("[Audio] System player failed:", err?.message || err);
+      }
+      try {
+        const converted = await convertToPcmWav(resolvedPath);
+        if (converted) {
+          console.log(`[Audio] Retrying TTS with PCM WAV: ${converted}`);
+          playbackPath = converted;
+          cleanupPath = converted;
+          return playAudioTTS(playbackPath).then(done);
+        }
+      } catch (err) {
+        console.warn("[Audio] PCM retry failed:", err?.message || err);
       }
       console.warn("[Audio] TTS did not start playback; skipping.");
       stopWaitAudio();
@@ -338,6 +368,11 @@ function playAudioTTS(audioPath) {
         }
         clearActiveStreams();
         console.log("[Audio] TTS finished.");
+        if (cleanupPath) {
+          try {
+            fs.unlinkSync(cleanupPath);
+          } catch (err) {}
+        }
         done();
       };
       speaker.on("close", finish);
