@@ -1,5 +1,5 @@
 const { sendMSGOSC } = require("../AddonsModules/OSC/Send");
-const { playAudioSound, playAudioTTS, stopAudioSound } = require("../AddonsModules/Audios/AudioDownloader");
+const { playAudioSound, playAudioTTS, stopAudioSound, isAudioPlaying } = require("../AddonsModules/Audios/AudioDownloader");
 
 const { writeToLogFile } = require("./LogFiles");
 const { isAdminPromptActive } = require("./VoiceState");
@@ -162,6 +162,9 @@ function startRenderProgress(durationSeconds = 60) {
 
   const playRandomWaitSound = async () => {
     try {
+      if (isAudioPlaying()) {
+        return;
+      }
       const soundsDir = path.join("Modules", "sounds");
       const entries = await fsn.promises.readdir(soundsDir, { withFileTypes: true });
       const wavFiles = entries

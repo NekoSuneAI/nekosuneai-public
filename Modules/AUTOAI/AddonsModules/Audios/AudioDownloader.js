@@ -101,6 +101,24 @@ function getSpeaker() {
 }
 
 let currentSpeakersound = null;
+let currentAudioLabel = null;
+let currentReader = null;
+let currentFileStream = null;
+
+function clearActiveStreams() {
+  if (currentReader) {
+    try {
+      currentReader.removeAllListeners();
+    } catch (err) {}
+    currentReader = null;
+  }
+  if (currentFileStream) {
+    try {
+      currentFileStream.destroy();
+    } catch (err) {}
+    currentFileStream = null;
+  }
+}
 
 // Function to audio
 function playAudioSound(audioPath, volume = 1) {
@@ -118,6 +136,8 @@ function playAudioSound(audioPath, volume = 1) {
     writeToLogFileMusic("Audio playback stopped.");
     // Reset the currentSpeaker variable
     currentSpeakersound = null;
+    currentAudioLabel = null;
+    clearActiveStreams();
   }
 
   return new Promise(resolve => {
@@ -128,11 +148,15 @@ function playAudioSound(audioPath, volume = 1) {
 
     const fileStream = fs.createReadStream(audioPath);
     const reader = new wav.Reader();
+    currentFileStream = fileStream;
+    currentReader = reader;
 
     const finish = () => {
       if (currentSpeakersound) {
         currentSpeakersound = null;
+        currentAudioLabel = null;
       }
+      clearActiveStreams();
       resolve();
     };
 
@@ -156,6 +180,7 @@ function playAudioSound(audioPath, volume = 1) {
       }
       const speaker = new SpeakerCtor(format);
       currentSpeakersound = speaker;
+      currentAudioLabel = "sound";
       audioStream.pipe(speaker);
       speaker.on("close", finish);
       speaker.on("finish", finish);
@@ -176,7 +201,9 @@ function stopAudioSound() {
     console.log("Audio playback stopped.");
     writeToLogFileMusic("Audio playback stopped.");
     currentSpeakersound = null;
+    currentAudioLabel = null;
   }
+  clearActiveStreams();
 }
 
 function playAudioTTS(audioPath) {
@@ -185,25 +212,26 @@ function playAudioTTS(audioPath) {
   
   if (!audioPath || !SpeakerCtor) return Promise.resolve();
 
-  if (currentSpeakersound) {
-    currentSpeakersound.end();
-    currentSpeakersound.close();
-    currentSpeakersound = null;
-  }
+  stopAudioSound();
 
   const fileStream = fs.createReadStream(audioPath);
   const reader = new wav.Reader();
+  currentFileStream = fileStream;
+  currentReader = reader;
 
   return new Promise(resolve => {
     // This will be fired when the WAV header is parsed
     reader.on("format", function (format) {
       const speaker = new SpeakerCtor(format);
       currentSpeakersound = speaker;
+      currentAudioLabel = "tts";
       reader.pipe(speaker);
       const finish = () => {
         if (currentSpeakersound === speaker) {
           currentSpeakersound = null;
+          currentAudioLabel = null;
         }
+        clearActiveStreams();
         resolve();
       };
       speaker.on("close", finish);
@@ -222,5 +250,7 @@ module.exports = {
   DownloadFile,
   playAudioSound,
   playAudioTTS,
-  stopAudioSound
+  stopAudioSound,
+  isAudioPlaying: () => Boolean(currentSpeakersound),
+  currentAudioLabel: () => currentAudioLabel
 };
