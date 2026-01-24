@@ -206,13 +206,20 @@ function stopAudioSound() {
   clearActiveStreams();
 }
 
+function stopWaitAudio() {
+  if (currentAudioLabel !== "sound") {
+    return;
+  }
+  stopAudioSound();
+}
+
 function playAudioTTS(audioPath) {
   const fs = require("fs");
   const SpeakerCtor = getSpeaker();
   
   if (!audioPath || !SpeakerCtor) return Promise.resolve();
 
-  stopAudioSound();
+  stopWaitAudio();
 
   const fileStream = fs.createReadStream(audioPath);
   const reader = new wav.Reader();
@@ -251,6 +258,7 @@ module.exports = {
   playAudioSound,
   playAudioTTS,
   stopAudioSound,
+  stopWaitAudio,
   isAudioPlaying: () => Boolean(currentSpeakersound),
   currentAudioLabel: () => currentAudioLabel
 };
