@@ -122,11 +122,13 @@ function clearActiveStreams() {
 
 function playWithWindowsSoundPlayer(audioPath) {
   const { spawn } = require("child_process");
+  const path = require("path");
   if (process.platform !== "win32") {
     return Promise.resolve(false);
   }
   return new Promise(resolve => {
-    const escapedPath = audioPath.replace(/'/g, "''");
+    const absPath = path.resolve(audioPath);
+    const escapedPath = absPath.replace(/'/g, "''");
     const psCommand = [
       "try {",
       "$player = New-Object System.Media.SoundPlayer",
@@ -142,8 +144,16 @@ function playWithWindowsSoundPlayer(audioPath) {
       windowsHide: true,
       stdio: "ignore"
     });
-    child.on("error", () => resolve(false));
-    child.on("exit", code => resolve(code === 0));
+    child.on("error", err => {
+      console.warn("[Audio] System player spawn failed:", err?.message || err);
+      resolve(false);
+    });
+    child.on("exit", code => {
+      if (code !== 0) {
+        console.warn("[Audio] System player exit code:", code);
+      }
+      resolve(code === 0);
+    });
   });
 }
 
@@ -242,21 +252,33 @@ function stopWaitAudio() {
 
 function playAudioTTS(audioPath) {
   const fs = require("fs");
+  const path = require("path");
   const SpeakerCtor = getSpeaker();
   
   if (!audioPath || !SpeakerCtor) return Promise.resolve();
 
   stopWaitAudio();
 
-  console.log(`[Audio] TTS start: ${audioPath}`);
+  const resolvedPath = path.resolve(audioPath);
+  console.log(`[Audio] TTS start: ${resolvedPath}`);
   try {
-    if (!fs.existsSync(audioPath)) {
-      console.warn(`[Audio] TTS file missing: ${audioPath}`);
+    if (!fs.existsSync(resolvedPath)) {
+      console.warn(`[Audio] TTS file missing: ${resolvedPath}`);
       return Promise.resolve();
     }
-    const size = fs.statSync(audioPath).size;
+    const size = fs.statSync(resolvedPath).size;
     if (size < 44) {
-      console.warn(`[Audio] TTS file too small to play: ${audioPath}`);
+      console.warn(`[Audio] TTS file too small to play: ${resolvedPath}`);
+      return Promise.resolve();
+    }
+    const header = Buffer.alloc(12);
+    const fd = fs.openSync(resolvedPath, "r");
+    fs.readSync(fd, header, 0, 12, 0);
+    fs.closeSync(fd);
+    const riff = header.slice(0, 4).toString("ascii");
+    const wave = header.slice(8, 12).toString("ascii");
+    if (riff !== "RIFF" || wave !== "WAVE") {
+      console.warn(`[Audio] TTS file not RIFF/WAVE: ${resolvedPath}`);
       return Promise.resolve();
     }
   } catch (err) {
@@ -264,7 +286,7 @@ function playAudioTTS(audioPath) {
     return Promise.resolve();
   }
 
-  const fileStream = fs.createReadStream(audioPath);
+  const fileStream = fs.createReadStream(resolvedPath);
   const reader = new wav.Reader();
   currentFileStream = fileStream;
   currentReader = reader;
@@ -283,7 +305,7 @@ function playAudioTTS(audioPath) {
       console.warn("[Audio] TTS did not start playback; trying system player.");
       try {
         clearActiveStreams();
-        const ok = await playWithWindowsSoundPlayer(audioPath);
+        const ok = await playWithWindowsSoundPlayer(resolvedPath);
         if (ok) {
           console.log("[Audio] TTS played via system player.");
           return done();
