@@ -18,6 +18,7 @@ const { VRChat, VRChatError } = require('vrchat') //npm vrchat
 //require('log-timestamp');                 //npm log-timestamp
 const twofactor = require('node-2fa')
 const fetch = global.fetch
+const { sendToWebhookchat } = require('../../AUTOAI/AddonsModules/API/Webhooks')
 
 function requireFetch () {
   if (typeof fetch !== 'function') {
@@ -109,6 +110,8 @@ async function VRCFriends () {
     console.error('[VRChat auth] failed:', error.message || error)
     return
   }
+
+  await autoAcceptPendingFriendRequests()
 
   vrcHeaders = {
     'User-Agent': userAgent,
@@ -345,6 +348,51 @@ async function VRCFriends () {
         )
       }
     }
+  }
+}
+
+async function autoAcceptPendingFriendRequests () {
+  try {
+    if (typeof vrchat.getNotifications !== 'function') {
+      console.warn('[VRChat] getNotifications not available; skipping pending friend requests.')
+      return
+    }
+    const resp = await vrchat.getNotifications({ throwOnError: true })
+    const notifications = Array.isArray(resp?.data) ? resp.data : Array.isArray(resp) ? resp : []
+    const pending = notifications.filter(n => n && n.type === 'friendRequest')
+    if (pending.length === 0) {
+      return
+    }
+
+    let accepted = 0
+    for (const notification of pending) {
+      try {
+        await vrchat.acceptFriendRequest({
+          path: { notificationId: notification.id },
+          throwOnError: true
+        })
+        accepted += 1
+      } catch (error) {
+        console.error('[VRChat] auto-accept failed:', error?.message || error)
+      }
+    }
+
+    if (accepted > 0) {
+      const message = 'omgh i have so many friends pending, sorry for waiting so long be accepted.'
+      try {
+        oscClient.send(new Message('/chatbox/input', message, true, false))
+      } catch (error) {
+        console.error('[VRChat] OSC message failed:', error?.message || error)
+      }
+      try {
+        await sendToWebhookchat(message)
+      } catch (error) {
+        console.error('[VRChat] Discord message failed:', error?.message || error)
+      }
+      console.log(`[VRChat] Auto-accepted ${accepted} pending friend request(s).`)
+    }
+  } catch (error) {
+    console.error('[VRChat] Failed to scan pending friend requests:', error?.message || error)
   }
 }
 

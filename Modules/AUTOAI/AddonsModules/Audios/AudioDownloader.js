@@ -221,14 +221,52 @@ function playAudioTTS(audioPath) {
 
   stopWaitAudio();
 
+  console.log(`[Audio] TTS start: ${audioPath}`);
+  try {
+    if (!fs.existsSync(audioPath)) {
+      console.warn(`[Audio] TTS file missing: ${audioPath}`);
+      return Promise.resolve();
+    }
+    const size = fs.statSync(audioPath).size;
+    if (size < 44) {
+      console.warn(`[Audio] TTS file too small to play: ${audioPath}`);
+      return Promise.resolve();
+    }
+  } catch (err) {
+    console.warn("[Audio] TTS file check failed:", err.message || err);
+    return Promise.resolve();
+  }
+
   const fileStream = fs.createReadStream(audioPath);
   const reader = new wav.Reader();
   currentFileStream = fileStream;
   currentReader = reader;
 
   return new Promise(resolve => {
+    let resolved = false;
+    const done = () => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(watchdog);
+      clearTimeout(startupWatchdog);
+      resolve();
+    };
+
+    const startupWatchdog = setTimeout(() => {
+      console.warn("[Audio] TTS did not start playback; skipping.");
+      stopWaitAudio();
+      done();
+    }, 15000);
+
+    const watchdog = setTimeout(() => {
+      console.warn("[Audio] TTS playback timeout; skipping.");
+      stopWaitAudio();
+      done();
+    }, 5 * 60 * 1000);
+
     // This will be fired when the WAV header is parsed
     reader.on("format", function (format) {
+      clearTimeout(startupWatchdog);
       const speaker = new SpeakerCtor(format);
       currentSpeakersound = speaker;
       currentAudioLabel = "tts";
@@ -239,16 +277,24 @@ function playAudioTTS(audioPath) {
           currentAudioLabel = null;
         }
         clearActiveStreams();
-        resolve();
+        console.log("[Audio] TTS finished.");
+        done();
       };
       speaker.on("close", finish);
       speaker.on("finish", finish);
       speaker.on("error", finish);
     });
 
-    reader.on("end", () => resolve());
-    reader.on("error", () => resolve());
-    fileStream.on("error", () => resolve());
+    reader.on("end", done);
+    reader.on("error", err => {
+      console.warn("[Audio] TTS reader error:", err?.message || err);
+      done();
+    });
+    fileStream.on("error", err => {
+      console.warn("[Audio] TTS file error:", err?.message || err);
+      done();
+    });
+    fileStream.on("close", done);
     fileStream.pipe(reader);
   });
 }
