@@ -6,13 +6,21 @@ const {
 } = require("../../VOICEModules/LogFiles");
 
 const { config } = require("../../../config");
+const ffmpeg = require("fluent-ffmpeg");
+try {
+  const ffmpegPath = require("ffmpeg-static");
+  if (ffmpegPath) {
+    ffmpeg.setFfmpegPath(ffmpegPath);
+  }
+} catch (err) {
+  console.warn("[Audio] ffmpeg-static not available:", err?.message || err);
+}
 const wav = require("wav");
 
 async function DownloadFile(source, mp3Url, filepath, filename) {
   const axios = require("axios");
   const path = require("path");
   const fs = require("fs");
-  const ffmpeg = require("fluent-ffmpeg");
   const inputMP3File = `${filename}.mp3`;
   const outputWavFile = `${filename}.wav`;
 
@@ -254,15 +262,6 @@ async function convertToPcmWav(inputPath) {
   try {
     const fs = require("fs");
     const path = require("path");
-    const ffmpeg = require("fluent-ffmpeg");
-    try {
-      const ffmpegPath = require("ffmpeg-static");
-      if (ffmpegPath) {
-        ffmpeg.setFfmpegPath(ffmpegPath);
-      }
-    } catch (err) {
-      console.warn("[Audio] ffmpeg-static not available:", err?.message || err);
-    }
     const base = path.basename(inputPath, path.extname(inputPath));
     const outPath = path.join(path.dirname(inputPath), `${base}-pcm.wav`);
     if (fs.existsSync(outPath)) {

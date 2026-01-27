@@ -2,6 +2,14 @@ const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 const ffmpeg = require("fluent-ffmpeg");
+try {
+  const ffmpegPath = require("ffmpeg-static");
+  if (ffmpegPath) {
+    ffmpeg.setFfmpegPath(ffmpegPath);
+  }
+} catch (err) {
+  console.warn("[Music] ffmpeg-static not available:", err?.message || err);
+}
 const { config } = require("../../../config");
 const { writeToLogFileMusic } = require("../../VOICEModules/LogFiles");
 

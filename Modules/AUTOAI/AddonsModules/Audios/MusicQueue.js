@@ -2,7 +2,7 @@ const fs = require("fs");
 let ytSearch = null;
 const { config } = require("../../../config");
 const { fetchMusicWavFromUrl } = require("../API/MusicRest");
-const { playAudioSound, playAudioTTS } = require("./AudioDownloader");
+const { playAudioSound, playAudioTTS, stopAudioSound } = require("./AudioDownloader");
 const { generateTts } = require("../../VOICEModules/Speak");
 const { startRecordingAndRunDeepSpeech } = require("../../VOICEModules/Main");
 const { isMicDisabled } = require("../../VOICEModules/VoiceState");
@@ -11,6 +11,7 @@ const { writeToLogFileMusic } = require("../../VOICEModules/LogFiles");
 const queue = [];
 let isPlaying = false;
 let initStarted = false;
+const playbackTimeoutMs = Number(config.addons.music?.playbackTimeoutMs) || 10 * 60 * 1000;
 const {
   addQueueItem,
   getPendingItems,
@@ -128,6 +129,22 @@ async function speakNowPlaying(text) {
   await sleep(350);
 }
 
+async function playAudioWithTimeout(filePath) {
+  let timedOut = false;
+  await Promise.race([
+    playAudioSound(filePath),
+    sleep(playbackTimeoutMs).then(() => {
+      timedOut = true;
+    })
+  ]);
+  if (timedOut) {
+    try {
+      stopAudioSound();
+    } catch (err) {}
+    throw new Error("Playback timed out.");
+  }
+}
+
 async function playQueue() {
   if (isPlaying) return;
   isPlaying = true;
@@ -158,14 +175,6 @@ async function playQueue() {
       const fromTitle = splitArtistTitle(video.title || "");
       const artist = fromTitle.artist || video.author?.name || "";
       const title = fromTitle.title || cleanupTitle(video.title) || "Unknown title";
-      const nowPlayingText = artist
-        ? `Now playing: ${artist} - ${title}`
-        : `Now playing: ${title}`;
-
-      writeToLogFileMusic(`[Music] ${nowPlayingText}`);
-      await speakNowPlaying(nowPlayingText);
-      writeToLogFileMusic(`[Music] Source: ${video.url}`);
-
       const download = await fetchMusicWavFromUrl(video.url);
       if (download?.error) {
         writeToLogFileMusic(`[Music] ${download.error}`);
@@ -176,7 +185,21 @@ async function playQueue() {
         continue;
       }
 
-      await playAudioSound(download.wavPath);
+      const nowPlayingText = artist
+        ? `Now playing: ${artist} - ${title}`
+        : `Now playing: ${title}`;
+
+      writeToLogFileMusic(`[Music] ${nowPlayingText}`);
+      await speakNowPlaying(nowPlayingText);
+      writeToLogFileMusic(`[Music] Source: ${video.url}`);
+
+      try {
+        await playAudioWithTimeout(download.wavPath);
+      } finally {
+        try {
+          fs.unlinkSync(download.wavPath);
+        } catch (err) {}
+      }
       if (item.id) {
         await markDone(item.id);
       }
