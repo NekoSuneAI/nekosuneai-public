@@ -181,11 +181,21 @@ function matchesSearchFallbackBlocklist(query) {
 
 function stripLinks(text) {
   if (!text) return text;
-  return text
-    .replace(/https?:\/\/\S+/gi, "")
-    .replace(/\bwww\.\S+/gi, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
+  let cleaned = text;
+  // Replace markdown links with just the link text.
+  cleaned = cleaned.replace(/\[([^\]]+)\]\(([^)]*)\)/gi, "$1");
+  // Remove dangling markdown link starts like [Title](
+  cleaned = cleaned.replace(/\[([^\]]+)\]\(/gi, "$1 ");
+  // Remove bracketed citation markers like [1], [1,2].
+  cleaned = cleaned.replace(/\[\s*\d+(?:\s*,\s*\d+)*\s*\]/g, "");
+  // Strip URLs.
+  cleaned = cleaned.replace(/https?:\/\/\S+/gi, "");
+  cleaned = cleaned.replace(/\bwww\.\S+/gi, "");
+  // Remove leftover bracket/parenthesis characters.
+  cleaned = cleaned.replace(/[\[\]\(\)]/g, " ");
+  // Normalize whitespace.
+  cleaned = cleaned.replace(/\s{2,}/g, " ").trim();
+  return cleaned;
 }
 
 function stripLinksFromArray(items) {

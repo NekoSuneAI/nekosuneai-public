@@ -60,7 +60,10 @@ async function RESPGPT(prompt, model) {
       };
     }
 
-    const text = awser.content || '';
+    let text = awser.content || '';
+    // Strip common assistant labels that sometimes leak into model output.
+    text = text.replace(/^\s*#{1,3}\s*Assistant:\s*/i, "");
+    text = text.replace(/^\s*Assistant:\s*/i, "");
     await addMessage('assistant', text);
 
     // Split long text into ≤129-character chunks
