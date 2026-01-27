@@ -29,7 +29,7 @@ async function createJob(link, uploadDest) {
   if (!baseUrl) {
     return { error: "Music baseURL is not configured." };
   }
-  const apiKey = config.addons.music?.apiKey;
+  const apiKey = (config.addons.music?.apiKey || "").trim();
   if (!apiKey) {
     return { error: "Music API key is not configured." };
   }
@@ -41,6 +41,7 @@ async function createJob(link, uploadDest) {
   const res = await axios.post(url, payload, {
     headers: {
       "Content-Type": "application/json",
+      "x-api-key": apiKey,
       Authorization: `Bearer ${apiKey}`
     }
   });
@@ -53,11 +54,12 @@ async function createJob(link, uploadDest) {
 
 async function pollJob(baseUrl, jobId, maxPolls, pollIntervalMs) {
   const url = `${baseUrl}/api/jobs/${jobId}`;
-  const apiKey = config.addons.music?.apiKey;
+  const apiKey = (config.addons.music?.apiKey || "").trim();
   for (let attempt = 0; attempt < maxPolls; attempt += 1) {
     const res = await axios.get(url, {
       headers: apiKey
         ? {
+            "x-api-key": apiKey,
             Authorization: `Bearer ${apiKey}`
           }
         : undefined
