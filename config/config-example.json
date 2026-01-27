@@ -110,6 +110,15 @@
         "joke": false
       }
     },
+    "music": {
+      "toggle": true,
+      "apiKey": "",
+      "baseURL": "https://dl.ballisticok.xyz",
+      "uploadDest": "cdn",
+      "downloadDir": "music",
+      "pollIntervalMs": 2000,
+      "maxPolls": 90
+    },
     "vrcapi": {
       "toggles": {
         "blfr": true,

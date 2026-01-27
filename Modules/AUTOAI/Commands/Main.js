@@ -32,6 +32,14 @@ const checkCondition = text => {
   ) {
     return "jokeQuery";
   } else if (
+    /^play\s+/i.test(lowerText) ||
+    /^queue\s+/i.test(lowerText) ||
+    /^add\s+song\s+/i.test(lowerText) ||
+    /\bplay (music|song|a song)\b/.test(lowerText) ||
+    /\bplay some music\b/.test(lowerText)
+  ) {
+    return "musicQuery";
+  } else if (
     lowerText.includes("reset memory") ||
     lowerText.includes("reset")
   ) {
@@ -201,6 +209,21 @@ function stripLinks(text) {
 function stripLinksFromArray(items) {
   if (!Array.isArray(items)) return items;
   return items.map(item => stripLinks(item));
+}
+
+function extractFirstUrl(text) {
+  if (!text) return "";
+  const match = text.match(/https?:\/\/\S+/i);
+  if (!match) return "";
+  return match[0].replace(/[)\].,!?]+$/g, "");
+}
+
+function extractMusicQuery(text) {
+  let cleaned = (text || "").trim();
+  cleaned = cleaned.replace(/[?.!]+$/, "").trim();
+  cleaned = cleaned.replace(/^(please\s+)?(can you|could you|would you|do you|will you)\s+/i, "");
+  cleaned = cleaned.replace(/^(play|queue|add|enqueue)\s+(music|song|a song)?\s*/i, "");
+  return cleaned.trim();
 }
 
 async function respondWithGPT(prompt, audioFile, messageid, options = {}) {
@@ -388,6 +411,30 @@ async function RunCommands(audioFile, result, messageid) {
         writeToLogFile(responsetext);
       } catch (error) {
         console.error(error);
+      }
+      break;
+    case "musicQuery":
+      {
+        if (config.addons.music?.toggle === false) {
+          await readAndPrintSentences(["Music is disabled to this bot. We cant play music for you."], audioFile, messageid);
+          break;
+        }
+        try {
+          const { enqueueMusic } = require("../AddonsModules/Audios/MusicQueue");
+          const query = extractMusicQuery(result[0].text);
+          const url = extractFirstUrl(result[0].text);
+          const input = url || query;
+          const enqueueResp = await enqueueMusic(input);
+          if (enqueueResp?.error) {
+            await readAndPrintSentences([enqueueResp.error], audioFile, messageid);
+            break;
+          }
+        } catch (error) {
+          const errorMessage = `Music playback failed: ${error.message}`;
+          console.error(errorMessage);
+          await readAndPrintSentences([errorMessage], audioFile, messageid);
+          writeToLogFile(errorMessage);
+        }
       }
       break;
     case "searchQuery":

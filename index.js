@@ -2,6 +2,7 @@ const { config } = require("./Modules/config");
 
 const { sequelize } = require('./Modules/Addons/db');
 const Message = require('./Modules/models/Message');
+const MusicQueueItem = require('./Modules/models/MusicQueueItem');
 
 const {
   startRecordingAndRunDeepSpeech,
@@ -26,6 +27,10 @@ if (config.addons.AI.toggle == true) {
       await sequelize.sync();
     } else {
       console.warn('[DB] Skipping sqlite sync (sqlite3 not installed).');
+    }
+    if (config.addons.music?.toggle) {
+      const { initQueueFromStorage } = require("./Modules/AUTOAI/AddonsModules/Audios/MusicQueue");
+      initQueueFromStorage();
     }
   })();
 }

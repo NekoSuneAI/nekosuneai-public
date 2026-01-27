@@ -55,6 +55,7 @@
     "weather-js": "^2.0.0",
     "wikipedia": "^2.4.2",
     "ws": "^8.18.0",
+    "yt-search": "^2.13.0",
     "node-record-lpcm16": "^1.0.1",
     "speaker": "^0.5.5",
     "sqlite3": "^5.1.7"
