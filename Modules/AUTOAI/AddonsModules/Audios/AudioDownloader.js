@@ -1,5 +1,3 @@
-const { generateTts } = require("../../VOICEModules/Speak");
-
 const {
   writeToLogFile,
   writeToLogFileMusic
@@ -78,6 +76,7 @@ async function DownloadFile(source, mp3Url, filepath, filename) {
       }
     }
   } else {
+    const { generateTts } = require("../../VOICEModules/Speak");
     const audioFileAi = generateTts(
       `This Invalid Command for Audio, Please say or stop with song name or meme number`,
       config.addons.AI.voice || "en_US-lessac-medium",
@@ -284,12 +283,13 @@ async function convertToPcmWav(inputPath) {
   }
 }
 
-function playAudioTTS(audioPath) {
+function playAudioTTS(audioPath, options = {}) {
   const fs = require("fs");
   const path = require("path");
   const SpeakerCtor = getSpeaker();
   
   if (!audioPath || !SpeakerCtor) return Promise.resolve();
+  const allowPcmRetry = options.allowPcmRetry !== false;
 
   stopWaitAudio();
 
@@ -340,12 +340,14 @@ function playAudioTTS(audioPath) {
         console.warn("[Audio] System player failed:", err?.message || err);
       }
       try {
-        const converted = await convertToPcmWav(resolvedPath);
-        if (converted) {
-          console.log(`[Audio] Retrying TTS with PCM WAV: ${converted}`);
-          playbackPath = converted;
-          cleanupPath = converted;
-          return playAudioTTS(playbackPath).then(done);
+        if (allowPcmRetry && !resolvedPath.toLowerCase().endsWith("-pcm.wav")) {
+          const converted = await convertToPcmWav(resolvedPath);
+          if (converted) {
+            console.log(`[Audio] Retrying TTS with PCM WAV: ${converted}`);
+            playbackPath = converted;
+            cleanupPath = converted;
+            return playAudioTTS(playbackPath, { allowPcmRetry: false }).then(done);
+          }
         }
       } catch (err) {
         console.warn("[Audio] PCM retry failed:", err?.message || err);
