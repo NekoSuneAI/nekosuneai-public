@@ -223,6 +223,9 @@ function extractMusicQuery(text) {
   cleaned = cleaned.replace(/[?.!]+$/, "").trim();
   cleaned = cleaned.replace(/^(please\s+)?(can you|could you|would you|do you|will you)\s+/i, "");
   cleaned = cleaned.replace(/^(play|queue|add|enqueue)\s+(music|song|a song)?\s*/i, "");
+  cleaned = cleaned.replace(/^[,.\s-]+/, "");
+  cleaned = cleaned.replace(/[,_]+/g, " ");
+  cleaned = cleaned.replace(/\s{2,}/g, " ");
   return cleaned.trim();
 }
 

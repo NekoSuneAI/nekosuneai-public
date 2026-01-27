@@ -1,5 +1,5 @@
 const fs = require("fs");
-const ytSearch = require("yt-search");
+let ytSearch = null;
 const { config } = require("../../../config");
 const { fetchMusicWavFromUrl } = require("../API/MusicRest");
 const { playAudioSound, playAudioTTS } = require("./AudioDownloader");
@@ -99,6 +99,13 @@ function pickBestVideo(videos) {
 }
 
 async function resolveYoutubeVideo(query) {
+  if (!ytSearch) {
+    try {
+      ytSearch = require("yt-search");
+    } catch (err) {
+      return { error: "yt-search is not installed. Run npm install." };
+    }
+  }
   const result = await ytSearch({ query, pages: 1 });
   const videos = Array.isArray(result?.videos) ? result.videos : [];
   if (!videos.length) {
@@ -131,6 +138,7 @@ async function playQueue() {
       if (item.id) {
         await markPlaying(item.id);
       }
+      writeToLogFileMusic(`[Music] Searching: ${item.queryOrUrl}`);
       let video = null;
       if (isUrl(item.queryOrUrl)) {
         video = { url: item.queryOrUrl, title: item.queryOrUrl };
@@ -141,6 +149,7 @@ async function playQueue() {
           if (item.id) {
             await markFailed(item.id);
           }
+          writeToLogFileMusic(`[Music] ${resolved.error}`);
           continue;
         }
         video = resolved.video;
@@ -155,6 +164,7 @@ async function playQueue() {
 
       writeToLogFileMusic(`[Music] ${nowPlayingText}`);
       await speakNowPlaying(nowPlayingText);
+      writeToLogFileMusic(`[Music] Source: ${video.url}`);
 
       const download = await fetchMusicWavFromUrl(video.url);
       if (download?.error) {
@@ -199,6 +209,7 @@ async function enqueueMusic(queryOrUrl) {
     }
   } catch (err) {}
   queue.push(payload);
+  writeToLogFileMusic(`[Music] Queued: ${payload.queryOrUrl}`);
   playQueue();
   return { queued: true, position: queue.length };
 }
