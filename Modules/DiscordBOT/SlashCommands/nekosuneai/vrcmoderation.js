@@ -12,10 +12,10 @@ const {
 const path = require('path')
 const fs = require('fs')
 
-const { resetMemory } = require('../../../Addons/memoryStore')
+const { resetMemory } = require('../../../VRChatAI/AI/Addons/DB/memoryStore')
 const {
   readAndPrintSentencesAdminCmds
-} = require('../../../AUTOAI/VOICEModules/Speak')
+} = require('../../../VRChatAI/AI/VOICEModules/Speak')
 
 module.exports = {
   name: 'vrcmoderation',

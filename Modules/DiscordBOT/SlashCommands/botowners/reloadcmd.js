@@ -2,11 +2,11 @@ const { EmbedBuilder, PermissionFlagsBits, ApplicationCommandType, ApplicationCo
 const glob = require("glob");
 const chalkImport = require("chalk");
 const chalk = chalkImport.default || chalkImport;
-const { clientname, clientavatar } = require("../../../../config/config.json");
+const { clientname, clientavatar } = require("../../../config").config;
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
-const settings = require("../../../../config/config.json");
+const settings = require("../../../config").config;
 
 module.exports = {
     name: "reloadcmd",

@@ -54,6 +54,7 @@
     "wav": "^1.0.2",
     "weather-js": "^2.0.0",
     "wikipedia": "^2.4.2",
+    "vosk": "^0.3.39",
     "ws": "^8.18.0",
     "yt-search": "^2.13.0",
     "node-record-lpcm16": "^1.0.1",

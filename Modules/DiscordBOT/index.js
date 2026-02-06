@@ -48,7 +48,7 @@ const path = require('path')
 client.aliases = new Collection()
 client.cooldowns = new Collection()
 client.slashCommands = new Collection()
-client.config = require('../../config/config.json')
+client.config = require('../config').config
 require('./handler')(client)
 
 // ———————————————[i18n Data]———————————————

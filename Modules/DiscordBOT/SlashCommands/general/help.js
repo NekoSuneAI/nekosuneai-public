@@ -7,7 +7,7 @@ const {
    ApplicationCommandOptionType,
    ComponentType
 } = require("discord.js");
-const { clientname, clientavatar } = require("../../../../config/config.json");
+const { clientname, clientavatar } = require("../../../config").config;
 
 module.exports = {
    name: "help",

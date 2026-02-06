@@ -9,10 +9,10 @@ const {
     AttachmentBuilder
 } = require("discord.js");
 
-const { RunCommands } = require('../../../AUTOAI/Commands/Main');
-const { readAndPrintSentences, startRenderProgress, stopRenderProgress } = require('../../../AUTOAI/VOICEModules/Speak');
-const { setMicDisabled, setAdminPromptActive } = require('../../../AUTOAI/VOICEModules/VoiceState');
-const { startRecordingAndRunDeepSpeech, stopRecording } = require('../../../AUTOAI/VOICEModules/Main');
+const { RunCommands } = require('../../../VRChatAI/AI/Commands/Main');
+const { readAndPrintSentences, startRenderProgress, stopRenderProgress } = require('../../../VRChatAI/AI/VOICEModules/Speak');
+const { setMicDisabled, setAdminPromptActive } = require('../../../Addons/VoiceState');
+const { startRecordingAndRunDeepSpeech, stopRecording } = require('../../../VRChatAI/AI/VOICEModules/Main');
 
 module.exports = {
     name: "adminprompt",

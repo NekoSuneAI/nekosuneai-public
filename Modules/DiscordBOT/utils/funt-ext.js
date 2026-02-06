@@ -1,6 +1,6 @@
 const { Sequelize, DataTypes } = require('sequelize');
 
-const config = require("../../../config/config.json");
+const config = require("../../config").config;
 
 function createConnectionSequelize(db) {
   return new Sequelize(db, config.discord.sql.user, config.discord.sql.password, {

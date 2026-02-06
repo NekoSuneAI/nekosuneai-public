@@ -2,7 +2,7 @@ const { glob } = require("glob");
 const { promisify } = require("util");
 const { Client, Collection, ApplicationCommandType } = require("discord.js");
 const globPromise = promisify(glob);
-const settings = require("../../../config/config.json");
+const settings = require("../../config").config;
 const chalkImport = require("chalk");
 const chalk = chalkImport.default || chalkImport;
 

@@ -1,131 +1,213 @@
 {
-  "discord": {
-    "toggle": false,
-    "token": "",
-    "TestingServerID": "",
-    "TestingServerCID": "",
-    "developerID": [
-      ""
-    ],
-    "randomMessages_Cooldown": [
-      "Slow It Down Fam...", 
-      "Spam Isn't Cool Fam....", 
-      "Get Premium dude...", 
-      "Never Gonna Let You Down",
-      "Subscribe To DrakeZee lol"
-    ],
-    "sql": {
-      "host": "127.0.0.1",
-      "port": 3306,
-      "user": "root",
-      "password": "password",
-      "dialect": "sqlite"
-    },
-    "API": {
-      "MYAPIKEY": "",
-      "twitchuser": "nekosunevr"
+  "engine": {
+    "activeMode": "normal",
+    "modes": {
+      "normal": {
+        "ai": {
+          "sttProvider": "vosk",
+          "ttsProvider": "piper",
+          "whisper": {
+            "model": "base"
+          },
+          "voskModel": "vosk-model-en-us-0.22",
+          "apiFallback": "http://localhost:3456"
+        }
+      },
+      "potato": {
+        "ai": {
+          "sttProvider": "vosk_api",
+          "ttsProvider": "piper_api",
+          "whisper": {
+            "model": "base"
+          },
+          "voskModel": "vosk-model-en-us-0.22",
+          "apiFallback": "https://api.example.com"
+        }
+      }
     }
   },
-  "VRCACC": {
-    "username": "EMAIL",
-    "password": "PASS",
-    "twofatoken": "2FA",
-    "OSC_TARGET_ADDRESS": "127.0.0.1",
-    "OSC_TARGET_PORT": "9000",
-    "OSC_READ_PORT": "9001"
+
+  "runtime": {
+    "activeMode": "vrchatai",
+    "modes": {
+
+      "vrchatai": {
+        "platforms": {
+          "vrchat": {
+            "credentials": {
+              "username": "EMAIL",
+              "password": "PASS",
+              "twofa": "2FA"
+            },
+            "osc": {
+              "targetAddress": "127.0.0.1",
+              "targetPort": 9000,
+              "readPort": 9001
+            },
+            "api": {
+              "toggles": {
+                "blfr": true,
+                "blscan": true,
+                "wlreq": true
+              },
+              "whitelist": []
+            }
+          },
+
+          "discord": {
+            "enabled": true,
+            "auth": {
+              "token": "",
+              "bearer": "AUTHTOKEN"
+            },
+            "testing": {
+              "serverID": "",
+              "channelID": ""
+            },
+            "developerIDs": [""],
+            "cooldownMessages": [
+              "Slow It Down Fam...",
+              "Spam Isn't Cool Fam....",
+              "Get Premium dude...",
+              "Never Gonna Let You Down",
+              "Subscribe To DrakeZee lol"
+            ],
+            "database": {
+              "dialect": "sqlite",
+              "host": "127.0.0.1",
+              "port": 3306,
+              "user": "root",
+              "password": "password"
+            },
+            "api": {
+              "twitchUser": "nekosunevr",
+              "customKey": ""
+            },
+            "webhooks": {
+              "error": "",
+              "chat": "",
+              "reply": ""
+            },
+            "serverID": "DISCORDSERVERID"
+          }
+        },
+
+        "addons": {
+          "ai": true,
+          "friendsSystem": true,
+          "music": true
+        }
+      },
+
+      "vtuberai": {
+        "addons": {
+          "ai": true
+        }
+      },
+
+      "assistant": {
+        "addons": {
+          "ai": {
+            "enabled": true,
+            "wakeword": {
+              "enabled": true,
+              "phrases": ["hey neko"],
+              "chunkSeconds": 2.5,
+              "cooldownMs": 1500,
+              "sensitivity": "high",
+              "local": {
+                "backend": "sherpa-onnx",
+                "provider": "cpu",
+                "threads": 2,
+                "models": {
+                  "dir": "tools/wakeword/models",
+                  "name": "sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01",
+                  "bpe": "bpe.model",
+                  "tokens": "tokens.txt",
+                  "encoder": "encoder.onnx",
+                  "decoder": "decoder.onnx",
+                  "joiner": "joiner.onnx"
+                },
+                "keywords": {
+                  "raw": "tools/wakeword/keywords_raw.txt",
+                  "compiled": "tools/wakeword/keywords.txt",
+                  "regex": "keyword|wake|trigger"
+                }
+              }
+            }
+          },
+          "music": false
+        }
+      }
+    }
   },
-  "addons": {
-    "discord": {
-      "toggle": false,
-      "webhookerror": "",
-      "webhookchat": "",
-      "webhookreply": "",
-      "authbearer": "AUTHTOKEN",
-      "serverid": "DISCORDSERVERID"
-    },
-    "FriendsSystem": {
-      "toggle": true
-    },
-    "AI": {
-      "toggle": true,
+
+  "globalAddons": {
+
+    "ai": {
+      "enabled": true,
       "voice": "en_US-lessac-medium",
-      "sttProvider": "openai",
-      "whisperModel": "base",
-      "vaskmodel": "vosk-model-en-us-0.22",
-      "ApiNodeFallback": "http://localhost:3456",
-      "RVCAPINODE": "http://localhost:5050",
-      "AudioVRCPath": "Stereo Mix (Realtek High Definition Audio)",
-      "waitSoundVolume": 0.3,
-      "GPTText": {
+      "audio": {
+        "device": "Stereo Mix (Realtek High Definition Audio)",
+        "waitVolume": 0.3
+      },
+      "whisper": {
+        "device": "auto",
+        "compute": "auto"
+      },
+      "rvc": {
+        "api": "http://localhost:5050"
+      },
+      "gpt": {
+        "model": "nekosuneai-vtuber",
         "apiKey": "",
         "baseURL": "https://chat.nekosunevr.co.uk/api",
-        "gptModel": "nekosuneai-vtuber",
-        "systemmsg": ""
-      },
-      "SearxNG": {
-        "baseURL": "https://searxng.nekosunevr.co.uk",
-        "maxResults": 5,
-        "blocklist": [
-          "news",
-          "latest news",
-          "politics",
-          "political",
-          "election",
-          "elections",
-          "government",
-          "breaking",
-          "latest updates",
-          "updates on",
-          "what's going on",
-          "what is going on",
-          "going on in",
-          "war",
-          "wars",
-          "conflict",
-          "ukraine",
-          "russia",
-          "religion",
-          "religious",
-          "jesus",
-          "allah",
-          "bible",
-          "quran"
-        ]
-      },
-      "OPENAI": {
-        "apiKey": "",
-        "baseURL": ""
+        "systemMessage": ""
       }
     },
-    "apikey": {
-      "weather": {
-        "key": ""
-      },
-      "timeapi": {
-        "key": ""
-      }
+
+    "search": {
+      "provider": "searxng",
+      "baseURL": "https://searxng.nekosunevr.co.uk",
+      "maxResults": 5,
+      "blocklist": [
+        "news",
+        "politics",
+        "election",
+        "government",
+        "war",
+        "religion",
+        "jesus",
+        "allah",
+        "bible",
+        "quran"
+      ]
     },
-    "filters": {
-      "explicit": {
-        "joke": false
-      }
-    },
+
     "music": {
-      "toggle": true,
-      "apiKey": "",
+      "enabled": false,
       "baseURL": "https://dl.ballisticok.xyz",
       "uploadDest": "cdn",
       "downloadDir": "music",
-      "pollIntervalMs": 2000,
-      "maxPolls": 90
+      "poll": {
+        "intervalMs": 2000,
+        "max": 90
+      }
     },
-    "vrcapi": {
-      "toggles": {
-        "blfr": true,
-        "blscan": true,
-        "wlreq": true
-      },
-      "whitelist": []
+
+    "filters": {
+      "explicit": {
+        "jokes": false
+      }
+    },
+
+    "apiKeys": {
+      "weather": "",
+      "time": "",
+      "openai": {
+        "key": "",
+        "baseURL": ""
+      }
     }
   }
 }

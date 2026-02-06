@@ -8,7 +8,7 @@ const {
     ComponentType
 } = require("discord.js");
 
-const { readAndPrintSentencesAdminCmds } = require('../../../AUTOAI/VOICEModules/Speak')
+const { readAndPrintSentencesAdminCmds } = require('../../../VRChatAI/AI/VOICEModules/Speak')
 
 module.exports = {
     name: "broadcast",
