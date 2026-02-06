@@ -65,14 +65,14 @@
     "tmi.js": "^1.9.0-pre.1",
     "unbzip2-stream": "^1.4.3",
     "unzipper": "^0.12.3",
-    "ytdl-core": "^4.11.5",
     "vosk": "^0.3.39",
     "vrchat": "^2.20.7",
     "wav": "^1.0.2",
     "weather-js": "^2.0.0",
     "wikipedia": "^2.4.2",
     "ws": "^8.18.0",
-    "yt-search": "^2.13.0"
+    "yt-search": "^2.13.0",
+    "ytdl-core": "^4.11.5"
   },
   "devDependencies": {
     "@gradio/client": "^2.0.3"
