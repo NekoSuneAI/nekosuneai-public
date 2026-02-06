@@ -76,10 +76,17 @@ async function voskLoader() {
 
 function getLocalPythonPath() {
   const platform = os.platform();
-  const portablePythonDir = path.resolve(__dirname, "../../../../tools/python");
-  return platform === "win32"
-    ? path.join(portablePythonDir, "python.exe")
-    : path.join(portablePythonDir, "bin", "python3");
+  const primaryDir = path.resolve(__dirname, "../../../../tools/python");
+  const fallbackDir = path.resolve(__dirname, "../../../../tools/python_portable");
+  const primaryExe = platform === "win32"
+    ? path.join(primaryDir, "python.exe")
+    : path.join(primaryDir, "bin", "python3");
+  const fallbackExe = platform === "win32"
+    ? path.join(fallbackDir, "python.exe")
+    : path.join(fallbackDir, "bin", "python3");
+  if (fs.existsSync(primaryExe)) return primaryExe;
+  if (fs.existsSync(fallbackExe)) return fallbackExe;
+  return primaryExe;
 }
 
 async function runLocalWhisper(audioFile) {
@@ -213,6 +220,7 @@ function startRecordingAndRunDeepSpeech(options = {}) {
 
 // Function to run DeepSpeech and delete the audio file.
 async function performSpeechRecognition(audioFile) {
+  const singleUtterance = false;
   if (isMicDisabled()) {
     try {
       if (fs.existsSync(audioFile)) {

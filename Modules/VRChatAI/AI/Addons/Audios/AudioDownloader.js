@@ -170,7 +170,7 @@ function playAudioSound(audioPath, volume = 1) {
   const { Transform } = require("stream");
   const SpeakerCtor = getSpeaker();
   if (!SpeakerCtor) {
-    return Promise.resolve();
+    return playWithWindowsSoundPlayer(audioPath).then(() => {});
   }
   if (currentSpeakersound) {
     currentSpeakersound.end();
@@ -287,7 +287,10 @@ function playAudioTTS(audioPath, options = {}) {
   const path = require("path");
   const SpeakerCtor = getSpeaker();
   
-  if (!audioPath || !SpeakerCtor) return Promise.resolve();
+  if (!audioPath) return Promise.resolve();
+  if (!SpeakerCtor) {
+    return playWithWindowsSoundPlayer(audioPath).then(() => {});
+  }
   const allowPcmRetry = options.allowPcmRetry !== false;
 
   stopWaitAudio();

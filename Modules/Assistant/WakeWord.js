@@ -25,19 +25,31 @@ function getWakewordConfig() {
 
 function getPythonExe() {
   const platform = process.platform;
-  const pythonDir = path.resolve(__dirname, "../../tools/python");
-  return platform === "win32"
-    ? path.join(pythonDir, "python.exe")
-    : path.join(pythonDir, "bin", "python3");
+  const primaryDir = path.resolve(__dirname, "../../tools/python");
+  const fallbackDir = path.resolve(__dirname, "../../tools/python_portable");
+  const primaryExe = platform === "win32"
+    ? path.join(primaryDir, "python.exe")
+    : path.join(primaryDir, "bin", "python3");
+  const fallbackExe = platform === "win32"
+    ? path.join(fallbackDir, "python.exe")
+    : path.join(fallbackDir, "bin", "python3");
+  if (fs.existsSync(primaryExe)) return primaryExe;
+  if (fs.existsSync(fallbackExe)) return fallbackExe;
+  return primaryExe;
 }
 
 function getSherpaCli() {
   const platform = process.platform;
-  const pythonDir = path.resolve(__dirname, "../../tools/python");
-  if (platform === "win32") {
-    return path.join(pythonDir, "Scripts", "sherpa-onnx-keyword-spotter.exe");
-  }
-  return path.join(pythonDir, "bin", "sherpa-onnx-keyword-spotter");
+  const primaryDir = path.resolve(__dirname, "../../tools/python");
+  const fallbackDir = path.resolve(__dirname, "../../tools/python_portable");
+  const primaryCli = platform === "win32"
+    ? path.join(primaryDir, "Scripts", "sherpa-onnx-keyword-spotter.exe")
+    : path.join(primaryDir, "bin", "sherpa-onnx-keyword-spotter");
+  const fallbackCli = platform === "win32"
+    ? path.join(fallbackDir, "Scripts", "sherpa-onnx-keyword-spotter.exe")
+    : path.join(fallbackDir, "bin", "sherpa-onnx-keyword-spotter");
+  if (fs.existsSync(primaryCli)) return primaryCli;
+  return fallbackCli;
 }
 
 async function writeKeywordsFile(phrases, keywordsRawPath) {

@@ -6,7 +6,13 @@ import { join } from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { exec } from "child_process";
-import { Sequelize, DataTypes } from "sequelize";
+let Sequelize;
+let DataTypes;
+try {
+  ({ Sequelize, DataTypes } = await import("sequelize"));
+} catch (err) {
+  console.warn("[VTuberAI] Sequelize not available:", err?.message || err);
+}
 import config from "./config/runtimeConfig.js";
 import { SQLITE_DIR, TTS_DIR as TTS_DIR_BASE, INPUT_DIR, MICAUDIO_DIR, TOKENS_DIR } from "./utils/paths.js";
 import { createRequire } from "module";
@@ -43,56 +49,168 @@ let emotions = {};
 let behaviors = {};
 
 // ===[ DATABASE MODULE ]===
-const Database = (() => {
-  const sequelizequeue = new Sequelize({
-    dialect: "sqlite",
-    storage: join(SQLITE_DIR, `queue-${config.vtuberai.gptModel}.db`),
-    logging: false
-  });
+function createMemoryDatabase() {
+  const queue = [];
+  const memories = [];
+  const bullies = new Map();
+  const emotions = new Map();
 
-  const sequelizebrain = new Sequelize({
-    dialect: "sqlite",
-    storage: join(SQLITE_DIR, `aibrain-${config.vtuberai.gptModel}.db`),
-    logging: false
-  });
+  const now = () => new Date();
 
-  const UserEmotion = sequelizebrain.define('UserEmotion', {
-    username: { type: DataTypes.STRING, allowNull: false, unique: true },
-    emotion: { type: DataTypes.STRING, allowNull: false },
-    lastUpdated: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
-  });
+  function makeRecord(data, table) {
+    const record = { ...data };
+    record.update = async (updates) => {
+      Object.assign(record, updates, { updatedAt: now() });
+      return record;
+    };
+    record.save = async () => record;
+    record.destroy = async () => {
+      const idx = table.indexOf(record);
+      if (idx >= 0) table.splice(idx, 1);
+    };
+    return record;
+  }
 
-  const MemoryItem = sequelizebrain.define("Memory", {
-    username: { type: DataTypes.STRING, allowNull: true },
-    usercontext: { type: DataTypes.TEXT, allowNull: false },
-    useremotion: { type: DataTypes.STRING, allowNull: false },
-    airesponse: { type: DataTypes.TEXT, allowNull: false },
-    aiemotion: { type: DataTypes.STRING, allowNull: false },
-    createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
-  });
-
-  const Bully = sequelizebrain.define("Bully", {
-    username: { type: DataTypes.STRING, allowNull: false, unique: true },
-    lastOffense: { type: DataTypes.DATE, allowNull: false },
-    isBully: { type: DataTypes.BOOLEAN, defaultValue: true },
-    pastOffenses: { type: DataTypes.INTEGER, defaultValue: 1 },
-  });
-
-  const QueueItem = sequelizequeue.define("QueueItem", {
-    username: { type: DataTypes.STRING, allowNull: false },
-    message: { type: DataTypes.TEXT, allowNull: false },
-    processed: { type: DataTypes.BOOLEAN, defaultValue: false },
-    status: { type: DataTypes.STRING, defaultValue: "pending" }, // pending, processing, done
-    lastError: { type: DataTypes.TEXT, allowNull: true }
-  });
-
-  const init = async () => {
-    await sequelizequeue.sync({ alter: true });
-    await sequelizebrain.sync({ alter: true });
-    console.log("Databases synced.");
+  const QueueItem = {
+    create: async (data) => {
+      const rec = makeRecord({ ...data, createdAt: now(), updatedAt: now() }, queue);
+      queue.push(rec);
+      return rec;
+    },
+    findOne: async (opts) => {
+      const items = queue.filter((q) => {
+        if (!opts?.where?.status) return true;
+        const status = q.status ?? "pending";
+        const allowed = opts.where.status[Sequelize?.Op?.or?.toString?.()] || opts.where.status;
+        if (Array.isArray(allowed)) return allowed.includes(status);
+        return status === allowed;
+      });
+      items.sort((a, b) => a.createdAt - b.createdAt);
+      return items[0] || null;
+    },
+    update: async (updates, opts) => {
+      let count = 0;
+      const before = opts?.where?.updatedAt?.[Sequelize?.Op?.lt?.toString?.()] || opts?.where?.updatedAt?.[Symbol.for("lt")];
+      for (const item of queue) {
+        if (opts?.where?.status && item.status !== opts.where.status) continue;
+        if (before && item.updatedAt >= before) continue;
+        Object.assign(item, updates, { updatedAt: now() });
+        count += 1;
+      }
+      return [count];
+    }
   };
 
-  return { init, UserEmotion, MemoryItem, Bully, QueueItem };
+  const MemoryItem = {
+    create: async (data) => {
+      const rec = makeRecord({ ...data, createdAt: now(), updatedAt: now() }, memories);
+      memories.push(rec);
+      return rec;
+    },
+    findAll: async (opts) => {
+      let list = memories.slice();
+      if (opts?.where?.username) {
+        list = list.filter(m => m.username === opts.where.username);
+      }
+      if (opts?.where?.usercontext) {
+        const like = opts.where.usercontext[Sequelize?.Op?.like?.toString?.()] || opts.where.usercontext;
+        const needle = String(like).replace(/%/g, "").toLowerCase();
+        list = list.filter(m => m.usercontext.toLowerCase().includes(needle));
+      }
+      list.sort((a, b) => b.createdAt - a.createdAt);
+      return list.slice(0, opts?.limit || list.length);
+    }
+  };
+
+  const Bully = {
+    findOrCreate: async ({ where, defaults }) => {
+      const existing = bullies.get(where.username);
+      if (existing) return [existing, false];
+      const rec = makeRecord(
+        { ...defaults, username: where.username, createdAt: now(), updatedAt: now() },
+        []
+      );
+      bullies.set(where.username, rec);
+      return [rec, true];
+    },
+    findOne: async ({ where }) => bullies.get(where.username) || null
+  };
+
+  const UserEmotion = {
+    upsert: async ({ username, emotion, lastUpdated }) => {
+      emotions.set(username, { username, emotion, lastUpdated: lastUpdated || now() });
+    }
+  };
+
+  return {
+    init: async () => {
+      console.warn("[VTuberAI] sqlite3 missing; using in-memory storage.");
+    },
+    UserEmotion,
+    MemoryItem,
+    Bully,
+    QueueItem
+  };
+}
+
+const Database = (() => {
+  if (!Sequelize || !DataTypes) {
+    return createMemoryDatabase();
+  }
+  try {
+    const sequelizequeue = new Sequelize({
+      dialect: "sqlite",
+      storage: join(SQLITE_DIR, `queue-${config.vtuberai.gptModel}.db`),
+      logging: false
+    });
+
+    const sequelizebrain = new Sequelize({
+      dialect: "sqlite",
+      storage: join(SQLITE_DIR, `aibrain-${config.vtuberai.gptModel}.db`),
+      logging: false
+    });
+
+    const UserEmotion = sequelizebrain.define("UserEmotion", {
+      username: { type: DataTypes.STRING, allowNull: false, unique: true },
+      emotion: { type: DataTypes.STRING, allowNull: false },
+      lastUpdated: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    });
+
+    const MemoryItem = sequelizebrain.define("Memory", {
+      username: { type: DataTypes.STRING, allowNull: true },
+      usercontext: { type: DataTypes.TEXT, allowNull: false },
+      useremotion: { type: DataTypes.STRING, allowNull: false },
+      airesponse: { type: DataTypes.TEXT, allowNull: false },
+      aiemotion: { type: DataTypes.STRING, allowNull: false },
+      createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+    });
+
+    const Bully = sequelizebrain.define("Bully", {
+      username: { type: DataTypes.STRING, allowNull: false, unique: true },
+      lastOffense: { type: DataTypes.DATE, allowNull: false },
+      isBully: { type: DataTypes.BOOLEAN, defaultValue: true },
+      pastOffenses: { type: DataTypes.INTEGER, defaultValue: 1 },
+    });
+
+    const QueueItem = sequelizequeue.define("QueueItem", {
+      username: { type: DataTypes.STRING, allowNull: false },
+      message: { type: DataTypes.TEXT, allowNull: false },
+      processed: { type: DataTypes.BOOLEAN, defaultValue: false },
+      status: { type: DataTypes.STRING, defaultValue: "pending" },
+      lastError: { type: DataTypes.TEXT, allowNull: true }
+    });
+
+    const init = async () => {
+      await sequelizequeue.sync({ alter: true });
+      await sequelizebrain.sync({ alter: true });
+      console.log("Databases synced.");
+    };
+
+    return { init, UserEmotion, MemoryItem, Bully, QueueItem };
+  } catch (err) {
+    console.warn("[VTuberAI] sqlite3 unavailable; falling back to memory:", err?.message || err);
+    return createMemoryDatabase();
+  }
 })();
 
 // ===[ EMOTION & BEHAVIOR MODULE ]===

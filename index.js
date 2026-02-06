@@ -14,6 +14,9 @@ ensureDir(getAssistantDir());
 ensureDir(getVTuberDir());
 ensureDir(getMusicDir());
 
+const { startStreamProxy } = require("./Modules/Addons/StreamProxy");
+startStreamProxy();
+
 const mode = (config.mode || "vrchatai").toLowerCase();
 
 if (mode === "assistant") {

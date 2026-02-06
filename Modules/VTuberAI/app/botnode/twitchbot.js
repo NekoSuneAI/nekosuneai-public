@@ -1,5 +1,5 @@
 import config from "../config/runtimeConfig.js";
-import rewardTypes from "../../../config/rewardsTwitch.json" with { type: "json" };
+import rewardTypes from "../../../../config/rewardsTwitch.json" with { type: "json" };
 import { Client } from "tmi.js";
 import { addToQueue } from "../index.js";
 import { getValidTwitchToken } from "../modules/gateways/twitch_oauth.js";

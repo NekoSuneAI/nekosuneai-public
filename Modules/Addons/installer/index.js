@@ -6,13 +6,30 @@ const util = require("util");
 const os = require("os");
 const readline = require("readline");
 const unzipper = require("unzipper");
-const { config } = require("../config");
+const { config } = require("../../config");
 
 const pipelineAsync = util.promisify(pipeline);
 
 const TOOLS_DIR = path.resolve(__dirname, "..", "..", "..", "tools");
+const DOWNLOADS_DIR = path.join(TOOLS_DIR, "downloads");
 const PYTHON_DIR = path.join(TOOLS_DIR, "python");
+const PYTHON_FALLBACK_DIR = path.join(TOOLS_DIR, "python_portable");
 const PYTHON_BIN_DIR = path.join(PYTHON_DIR, "bin");
+const PYTHON_FALLBACK_BIN_DIR = path.join(PYTHON_FALLBACK_DIR, "bin");
+
+async function resolvePythonDir() {
+  const platform = os.platform();
+  const primaryExe = platform === "win32"
+    ? path.join(PYTHON_DIR, "python.exe")
+    : path.join(PYTHON_DIR, "bin", "python3");
+  const fallbackExe = platform === "win32"
+    ? path.join(PYTHON_FALLBACK_DIR, "python.exe")
+    : path.join(PYTHON_FALLBACK_DIR, "bin", "python3");
+
+  if (await fileExists(primaryExe)) return { dir: PYTHON_DIR, exe: primaryExe };
+  if (await fileExists(fallbackExe)) return { dir: PYTHON_FALLBACK_DIR, exe: fallbackExe };
+  return { dir: PYTHON_DIR, exe: primaryExe, fallbackDir: PYTHON_FALLBACK_DIR, fallbackExe };
+}
 const PIPER_DIR = path.join(TOOLS_DIR, "piper");
 const PIPER_BIN_DIR = path.join(PIPER_DIR, "bin");
 const PIPER_MODELS_DIR = path.join(PIPER_DIR, "models");
@@ -24,7 +41,7 @@ const WHISPER_DIR = path.join(TOOLS_DIR, "whisper");
 const WHISPER_BIN_DIR = path.join(WHISPER_DIR, "bin");
 const WHISPER_MODELS_DIR = path.join(WHISPER_DIR, "models");
 
-const VOICE_MODELS = require("../../config/voice_dl.json");
+const VOICE_MODELS = require("../../../config/voice_dl.json");
 
 const LANGUAGE_MAP = {
   de_DE: "German (Germany)",
@@ -110,6 +127,25 @@ async function fileExists(filePath) {
   }
 }
 
+async function directoryHasEntries(dirPath) {
+  try {
+    const entries = await fs.readdir(dirPath);
+    return entries.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+async function findAlternateDir(baseDir) {
+  for (let i = 2; i <= 5; i += 1) {
+    const candidate = `${baseDir}_${i}`;
+    if (!(await directoryHasEntries(candidate))) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
 async function runCommand(cmd, args, options = {}) {
   return new Promise((resolve, reject) => {
     const child = require("child_process").spawn(cmd, args, options);
@@ -129,23 +165,50 @@ async function runCommand(cmd, args, options = {}) {
 async function ensurePortablePython() {
   const logger = console;
   const platform = os.platform();
-  const pythonExe = platform === "win32"
-    ? path.join(PYTHON_DIR, "python.exe")
-    : path.join(PYTHON_DIR, "bin", "python3");
+  const resolved = await resolvePythonDir();
+  const pythonExe = resolved.exe;
 
   const hasPortablePython = await fileExists(pythonExe);
   if (hasPortablePython) {
     return pythonExe;
   }
 
+  let targetDir = resolved.dir;
+  const fallbackDir = resolved.fallbackDir || PYTHON_FALLBACK_DIR;
+  const targetHasEntries = await directoryHasEntries(targetDir);
+  if (targetHasEntries && !(await fileExists(pythonExe))) {
+    targetDir = fallbackDir;
+  }
+  if (await directoryHasEntries(targetDir) && !(await fileExists(platform === "win32"
+    ? path.join(targetDir, "python.exe")
+    : path.join(targetDir, "bin", "python3")))) {
+    const altDir = await findAlternateDir(fallbackDir);
+    if (altDir) targetDir = altDir;
+  }
+
   logger.info("Portable Python not found, downloading and extracting...");
 
   if (platform === "win32") {
     const minicondaUrl = "https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe";
-    const installerPath = path.join(PYTHON_BIN_DIR, "miniconda_installer.exe");
+    const installerPath = path.join(DOWNLOADS_DIR, "miniconda_installer.exe");
 
+    await fs.mkdir(DOWNLOADS_DIR, { recursive: true });
     await downloadFile(minicondaUrl, installerPath);
-    await runCommand(installerPath, ["/InstallationType=JustMe", "/AddToPath=0", "/RegisterPython=0", "/S", `/D=${PYTHON_DIR}`]);
+    try {
+      await runCommand(installerPath, ["/InstallationType=JustMe", "/AddToPath=0", "/RegisterPython=0", "/S", `/D=${targetDir}`]);
+    } catch (err) {
+      if (String(err.message || "").includes("not empty")) {
+        const altDir = await findAlternateDir(PYTHON_FALLBACK_DIR);
+        if (altDir) {
+          targetDir = altDir;
+          await runCommand(installerPath, ["/InstallationType=JustMe", "/AddToPath=0", "/RegisterPython=0", "/S", `/D=${targetDir}`]);
+        } else {
+          throw err;
+        }
+      } else {
+        throw err;
+      }
+    }
     await fs.unlink(installerPath);
     logger.info("Extracted portable Python for Windows.");
   } else if (platform === "linux" || platform === "darwin") {
@@ -153,24 +216,28 @@ async function ensurePortablePython() {
       ? "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
       : "https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh";
 
-    const shPath = path.join(PYTHON_BIN_DIR, "miniconda.sh");
+    const shPath = path.join(DOWNLOADS_DIR, "miniconda.sh");
+    await fs.mkdir(DOWNLOADS_DIR, { recursive: true });
     await downloadFile(minicondaUrl, shPath);
     await fs.chmod(shPath, 0o755);
-    await runCommand("bash", [shPath, "-b", "-p", PYTHON_DIR]);
+    await runCommand("bash", [shPath, "-b", "-p", targetDir]);
     await fs.unlink(shPath);
     logger.info("Installed Miniconda portable Python.");
   } else {
     throw new Error(`Unsupported platform: ${platform}`);
   }
 
-  return pythonExe;
+  const finalExe = platform === "win32"
+    ? path.join(targetDir, "python.exe")
+    : path.join(targetDir, "bin", "python3");
+  return finalExe;
 }
 
 async function ensureVoskModelDownloaded(voskLoader) {
   const modelName = config.addons.AI.vaskmodel;
   const modelDir = path.join(VOSK_MODELS_DIR, modelName);
   const modelUrl = `https://alphacephei.com/vosk/models/${modelName}.zip`;
-  const zipPath = path.join(VOSK_BIN_DIR, `${modelName}.zip`);
+  const zipPath = path.join(DOWNLOADS_DIR, `${modelName}.zip`);
 
   try {
     await fs.access(modelDir);
@@ -186,6 +253,7 @@ async function ensureVoskModelDownloaded(voskLoader) {
   await fs.mkdir(VOSK_MODELS_DIR, { recursive: true });
   await fs.mkdir(VOSK_DIR, { recursive: true });
   await fs.mkdir(VOSK_BIN_DIR, { recursive: true });
+  await fs.mkdir(DOWNLOADS_DIR, { recursive: true });
   await downloadFile(modelUrl, zipPath);
   await extractZip(zipPath, VOSK_MODELS_DIR);
   await fs.unlink(zipPath);

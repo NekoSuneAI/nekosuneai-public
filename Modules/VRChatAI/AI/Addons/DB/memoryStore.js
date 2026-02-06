@@ -1,12 +1,26 @@
 const Message = require('../../../models/Message');
+const { sequelize } = require('./db');
 const IDLE_CLEAR_MS = 10 * 60 * 1000;
 let idleTimer = null;
+let dbSynced = false;
+
+async function ensureSynced() {
+  if (!sequelize || dbSynced) return;
+  try {
+    await sequelize.sync();
+    dbSynced = true;
+  } catch (err) {
+    console.warn('[Memory] Failed to sync sqlite, falling back to memory:', err.message || err);
+  }
+}
 
 async function addMessage(role, content) {
+  await ensureSynced();
   return Message.create({ role, content });
 }
 
 async function getMemory(limit = 50) {
+  await ensureSynced();
   return Message.findAll({
     order: [['id', 'ASC']],
     limit
@@ -14,6 +28,7 @@ async function getMemory(limit = 50) {
 }
 
 async function resetMemory() {
+  await ensureSynced();
   await Message.destroy({ where: {} });
 }
 

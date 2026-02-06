@@ -86,6 +86,7 @@ async function runTTSRVC(text, voicegender, voice, TTS_DIR) {
     // -----------------------------
     // 3. Convert using RVC API
     // -----------------------------
+    try {
     const baseAudioBuffer = await fsn.promises.readFile(rawFile);
     const base64Audio = fsn.readFileSync(rawFile).toString("base64");
     
@@ -138,6 +139,10 @@ async function runTTSRVC(text, voicegender, voice, TTS_DIR) {
       console.log("Failed to delete RAW TTS file:", err.message);
     }
     return finalFile;
+    } catch (err) {
+      console.warn(`[RVC] Failed, using base TTS instead: ${err.message}`);
+      return rawFile;
+    }
 }
 
 let stopRenderInterval = null;
