@@ -53,7 +53,11 @@ function getSherpaCli() {
 }
 
 async function writeKeywordsFile(phrases, keywordsRawPath) {
-  const content = phrases.map(p => p.trim()).filter(Boolean).join("\n");
+  const content = phrases
+    .map(p => p.trim())
+    .filter(Boolean)
+    .map(p => p.toUpperCase())
+    .join("\n");
   await fs.promises.mkdir(path.dirname(keywordsRawPath), { recursive: true });
   await fs.promises.writeFile(keywordsRawPath, content + "\n");
 }
@@ -61,31 +65,56 @@ async function writeKeywordsFile(phrases, keywordsRawPath) {
 function runSherpaKeywordSpotter(wavPath, phrases, localCfg) {
   return new Promise((resolve, reject) => {
     const cli = getSherpaCli();
-    if (!fs.existsSync(cli)) {
-      reject(new Error("sherpa-onnx keyword spotter not found"));
-      return;
-    }
     const keywordsFile = localCfg.keywordsFile;
     const detectRegex = localCfg.detectRegex || "keyword|wake|trigger";
-    const args = [
-      "--tokens",
-      localCfg.tokens,
-      "--encoder",
-      localCfg.encoder,
-      "--decoder",
-      localCfg.decoder,
-      "--joiner",
-      localCfg.joiner,
-      "--keywords-file",
-      keywordsFile,
-      "--provider",
-      localCfg.provider || "cpu",
-      "--num-threads",
-      String(localCfg.numThreads || 2),
-      wavPath
-    ];
+    let child = null;
+    if (fs.existsSync(cli)) {
+      const args = [
+        "--tokens",
+        localCfg.tokens,
+        "--encoder",
+        localCfg.encoder,
+        "--decoder",
+        localCfg.decoder,
+        "--joiner",
+        localCfg.joiner,
+        "--keywords-file",
+        keywordsFile,
+        "--provider",
+        localCfg.provider || "cpu",
+        "--num-threads",
+        String(localCfg.numThreads || 2),
+        wavPath
+      ];
+      child = spawn(cli, args, { stdio: ["ignore", "pipe", "pipe"] });
+    } else {
+      const pythonExe = getPythonExe();
+      const scriptPath = path.resolve(__dirname, "../Addons/wakeword_spotter.py");
+      const args = [
+        scriptPath,
+        "--wav",
+        wavPath,
+        "--tokens",
+        localCfg.tokens,
+        "--encoder",
+        localCfg.encoder,
+        "--decoder",
+        localCfg.decoder,
+        "--joiner",
+        localCfg.joiner,
+        "--keywords-file",
+        keywordsFile,
+        "--provider",
+        localCfg.provider || "cpu",
+        "--num-threads",
+        String(localCfg.numThreads || 2)
+      ];
+      child = spawn(pythonExe, args, {
+        stdio: ["ignore", "pipe", "pipe"],
+        env: { ...process.env, PYTHONIOENCODING: "utf-8" }
+      });
+    }
 
-    const child = spawn(cli, args, { stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
 
@@ -100,13 +129,24 @@ function runSherpaKeywordSpotter(wavPath, phrases, localCfg) {
         reject(new Error(stderr || `sherpa-onnx exited with code ${code}`));
         return;
       }
-      const regex = new RegExp(detectRegex, "i");
-      const hit = regex.test(stdout);
-      if (!hit) {
+      let detected = false;
+      let keyword = "";
+      try {
+        const parsed = JSON.parse(stdout);
+        detected = Boolean(parsed && parsed.triggered);
+        if (parsed && parsed.keyword) {
+          keyword = String(parsed.keyword);
+        }
+      } catch {
+        const regex = new RegExp(detectRegex, "i");
+        detected = regex.test(stdout);
+      }
+      if (!detected) {
         resolve(false);
         return;
       }
-      const lower = stdout.toLowerCase();
+      const phraseSource = keyword ? keyword : stdout;
+      const lower = phraseSource.toLowerCase();
       const phraseHit = phrases.some(p => lower.includes(p.toLowerCase()));
       resolve(phraseHit || phrases.length === 0);
     });
@@ -121,6 +161,11 @@ async function recordChunk(wavPath, seconds) {
       endOnSilence: true,
       recorder: "sox"
     });
+    if (recorder && typeof recorder.on === "function") {
+      recorder.on("error", err => {
+        reject(err);
+      });
+    }
     const fileStream = fs.createWriteStream(wavPath, { encoding: "binary" });
     const timeout = setTimeout(() => {
       try {
@@ -139,7 +184,12 @@ async function recordChunk(wavPath, seconds) {
       reject(err);
     });
 
-    recorder.stream().pipe(fileStream);
+    const stream = recorder.stream();
+    stream.on("error", err => {
+      clearTimeout(timeout);
+      reject(err);
+    });
+    stream.pipe(fileStream);
   });
 }
 
@@ -148,6 +198,15 @@ async function checkWakewordOnce(cfg) {
   const audioDir = path.resolve(__dirname, "../../tools/wakeword/audio");
   const wavPath = path.join(audioDir, `wakeword_${Date.now()}.wav`);
   await recordChunk(wavPath, cfg.chunkSeconds);
+  try {
+    const stats = await fs.promises.stat(wavPath);
+    if (!stats || stats.size < 100) {
+      await fs.promises.unlink(wavPath).catch(() => {});
+      return false;
+    }
+  } catch {
+    return false;
+  }
 
   let triggered = false;
   if (cfg.provider === "local" && (localCfg.backend || "").toLowerCase() === "sherpa-onnx") {
@@ -155,26 +214,43 @@ async function checkWakewordOnce(cfg) {
     if (!localCfg.keywordsFile || !localCfg.tokens || !localCfg.encoder || !localCfg.decoder || !localCfg.joiner) {
       throw new Error("Wakeword local config missing model paths.");
     }
-    if (!fs.existsSync(localCfg.keywordsFile)) {
+    let needsCompile = true;
+    if (fs.existsSync(localCfg.keywordsFile)) {
+      try {
+        const stats = await fs.promises.stat(localCfg.keywordsFile);
+        if (stats.size > 0) {
+          needsCompile = false;
+        }
+      } catch {
+        needsCompile = true;
+      }
+    }
+    if (needsCompile) {
       const pythonExe = getPythonExe();
       const tokensType = localCfg.tokensType || "bpe";
+      const scriptPath = path.resolve(__dirname, "../Addons/wakeword_text2token.py");
       const args = [
-        "-m",
-        "sherpa_onnx.cli.text2token",
+        scriptPath,
+        "--input",
+        localCfg.keywordsRaw,
+        "--output",
+        localCfg.keywordsFile,
         "--tokens",
         localCfg.tokens,
         "--tokens-type",
-        tokensType,
-        "--text",
-        localCfg.keywordsRaw,
-        "--output",
-        localCfg.keywordsFile
+        tokensType
       ];
       if (localCfg.bpeModel) {
         args.push("--bpe-model", localCfg.bpeModel);
       }
+      if (localCfg.lexicon) {
+        args.push("--lexicon", localCfg.lexicon);
+      }
       await new Promise((resolve, reject) => {
-        const child = spawn(pythonExe, args, { stdio: ["ignore", "pipe", "pipe"] });
+        const child = spawn(pythonExe, args, {
+          stdio: ["ignore", "pipe", "pipe"],
+          env: { ...process.env, PYTHONIOENCODING: "utf-8" }
+        });
         let stderr = "";
         child.stderr.on("data", data => {
           stderr += data.toString();
@@ -229,6 +305,7 @@ async function wakewordLoop() {
     try {
       const triggered = await checkWakewordOnce(cfg);
       if (triggered) {
+        console.log("[Wakeword] Triggered.");
         setMicDisabled(false);
         startRecordingAndRunDeepSpeech({ singleUtterance: true });
         await new Promise(resolve => setTimeout(resolve, cfg.cooldownMs));

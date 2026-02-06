@@ -5,7 +5,8 @@ require("./models/MusicQueueItem");
 
 const {
   startRecordingAndRunDeepSpeech,
-  voskLoader
+  voskLoader,
+  stopRecording
 } = require("./AI/VOICEModules/Main");
 const { loadTtsConfigs } = require("./AI/VOICEModules/Speak");
 const { sendToWebhookerror } = require("./AI/Addons/Webhooks");
@@ -116,6 +117,21 @@ function startVRChatAI() {
     console.log(err, origin);
     startRecordingAndRunDeepSpeech();
   });
+
+  const shutdown = signal => {
+    try {
+      console.log(`[VRChatAI] Received ${signal}, shutting down...`);
+      stopRecording();
+      if (sequelize) {
+        sequelize.close().catch(() => {});
+      }
+    } finally {
+      process.exit(0);
+    }
+  };
+
+  process.once("SIGINT", () => shutdown("SIGINT"));
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
 }
 
 module.exports = {

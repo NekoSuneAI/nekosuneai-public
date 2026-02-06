@@ -418,6 +418,18 @@ async function RunCommands(audioFile, result, messageid) {
       break;
     case "musicQuery":
       {
+        if ((config.mode || "").toLowerCase() === "assistant") {
+          try {
+            const query = extractMusicQuery(result[0].text);
+            const url = extractFirstUrl(result[0].text);
+            const input = url || query;
+            if (input) {
+              console.log(`[Assistant] Command: play "${input}"`);
+            }
+          } catch {
+            // ignore
+          }
+        }
         if (config.addons.music?.toggle === false) {
           await readAndPrintSentences(["Music is disabled to this bot. We cant play music for you."], audioFile, messageid);
           break;

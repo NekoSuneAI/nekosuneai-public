@@ -204,15 +204,16 @@
                 "backend": "sherpa-onnx",
                 "provider": "cpu",
                 "threads": 2,
-                "models": {
-                  "dir": "tools/wakeword/models",
-                  "name": "sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01",
-                  "bpe": "bpe.model",
-                  "tokens": "tokens.txt",
-                  "encoder": "encoder.onnx",
-                  "decoder": "decoder.onnx",
-                  "joiner": "joiner.onnx"
-                },
+              "models": {
+                "dir": "tools/wakeword/models",
+                "name": "sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01",
+                "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01.tar.bz2",
+                "bpe": "bpe.model",
+                "tokens": "tokens.txt",
+                "encoder": "encoder-epoch-12-avg-2-chunk-16-left-64.onnx",
+                "decoder": "decoder-epoch-12-avg-2-chunk-16-left-64.onnx",
+                "joiner": "joiner-epoch-12-avg-2-chunk-16-left-64.onnx"
+              },
                 "keywords": {
                   "raw": "tools/wakeword/keywords_raw.txt",
                   "compiled": "tools/wakeword/keywords.txt",

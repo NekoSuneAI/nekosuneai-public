@@ -40,6 +40,8 @@ const VOSK_MODELS_DIR = path.join(VOSK_DIR, "models");
 const WHISPER_DIR = path.join(TOOLS_DIR, "whisper");
 const WHISPER_BIN_DIR = path.join(WHISPER_DIR, "bin");
 const WHISPER_MODELS_DIR = path.join(WHISPER_DIR, "models");
+const WAKEWORD_DIR = path.join(TOOLS_DIR, "wakeword");
+const WAKEWORD_MODELS_DIR = path.join(WAKEWORD_DIR, "models");
 
 const VOICE_MODELS = require("../../../config/voice_dl.json");
 
@@ -68,6 +70,19 @@ async function extractZip(zipPath, extractTo) {
   console.log("Extraction complete.");
 }
 
+async function extractTarBz2(archivePath, extractTo) {
+  const tar = require("tar");
+  const unbzip2 = require("unbzip2-stream");
+  const fsNative = require("fs");
+  console.log(`Extracting ${archivePath} to ${extractTo}`);
+  await fs.mkdir(extractTo, { recursive: true });
+  await pipelineAsync(
+    fsNative.createReadStream(archivePath),
+    unbzip2(),
+    tar.x({ cwd: extractTo })
+  );
+  console.log("Extraction complete.");
+}
 function renderProgress(filename, received, total) {
   const barWidth = 30;
   const percent = total ? received / total : 0;
@@ -338,7 +353,41 @@ async function setupWakeword() {
   const pythonExe = await ensurePortablePython();
   await runCommand(pythonExe, ["-m", "pip", "install", "--upgrade", "pip"]);
   await runCommand(pythonExe, ["-m", "pip", "install", "sherpa-onnx"]);
+  await runCommand(pythonExe, ["-m", "pip", "install", "sentencepiece"]);
+  await runCommand(pythonExe, ["-m", "pip", "install", "pypinyin"]);
   logger.info("sherpa-onnx is installed.");
+
+  const wakeCfg = config.addons?.AI?.wakeword || {};
+  const localCfg = wakeCfg.local || {};
+  const modelUrl = localCfg.modelUrl || "";
+  const modelsDir = localCfg.modelsDir || WAKEWORD_MODELS_DIR;
+  const modelName = localCfg.modelName || "";
+  const modelBase = modelName ? path.join(modelsDir, modelName) : modelsDir;
+
+  if (modelUrl && modelName) {
+    const tokensPath = path.join(modelBase, "tokens.txt");
+    if (!(await fileExists(tokensPath))) {
+      await fs.mkdir(modelsDir, { recursive: true });
+      await fs.mkdir(DOWNLOADS_DIR, { recursive: true });
+      const archiveName = path.basename(modelUrl);
+      const archivePath = path.join(DOWNLOADS_DIR, archiveName);
+      logger.info(`Downloading wakeword model ${archiveName}...`);
+      await downloadFile(modelUrl, archivePath);
+      logger.info("Extracting wakeword model archive...");
+      try {
+        await runCommand("tar", ["-xvf", archivePath, "-C", modelsDir]);
+      } catch (err) {
+        logger.warn("System tar failed; using built-in extractor.");
+        await extractTarBz2(archivePath, modelsDir);
+      }
+      await fs.unlink(archivePath);
+      logger.info("Wakeword model extracted.");
+    } else {
+      logger.info("Wakeword model already exists, skipping download.");
+    }
+  } else {
+    logger.warn("Wakeword model URL not configured; skipping model download.");
+  }
 }
 
 module.exports = {
@@ -355,6 +404,8 @@ module.exports = {
   WHISPER_DIR,
   WHISPER_BIN_DIR,
   WHISPER_MODELS_DIR,
+  WAKEWORD_DIR,
+  WAKEWORD_MODELS_DIR,
   ensurePortablePython,
   ensureVoskModelDownloaded,
   setupPiper,

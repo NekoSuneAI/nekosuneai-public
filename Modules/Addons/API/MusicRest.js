@@ -27,12 +27,6 @@ function safeUrl(raw) {
   return raw.replace(/[)\].,!?]+$/g, "");
 }
 
-function ensureDir(dirPath) {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
-}
-
 async function createJob(link, uploadDest) {
   const baseUrl = normalizeBaseUrl(config.addons.music?.baseURL);
   if (!baseUrl) {

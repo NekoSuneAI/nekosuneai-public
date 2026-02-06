@@ -22,10 +22,17 @@ function buildWakewordConfig(aiAddon) {
   const local = ww.local || {};
   const models = local.models || {};
   const keywords = local.keywords || {};
+  const rootDir = path.resolve(__dirname, "..");
+  const resolveMaybe = value => {
+    if (!value) return "";
+    if (path.isAbsolute(value)) return value;
+    return path.resolve(rootDir, value);
+  };
 
   const modelDir = models.dir || "";
   const modelName = models.name || "";
-  const modelBase = modelDir && modelName ? path.join(modelDir, modelName) : modelDir;
+  const resolvedModelDir = resolveMaybe(modelDir);
+  const modelBase = resolvedModelDir && modelName ? path.join(resolvedModelDir, modelName) : resolvedModelDir;
 
   return {
     enabled: toBool(ww.enabled, false),
@@ -36,16 +43,17 @@ function buildWakewordConfig(aiAddon) {
     sensitivity: ww.sensitivity || "high",
     local: {
       backend: local.backend || "sherpa-onnx",
-      modelsDir: modelDir,
+      modelsDir: resolvedModelDir,
       modelName: modelName,
-      tokensType: "bpe",
+      tokensType: local.tokensType || "bpe",
+      modelUrl: models.url || "",
       bpeModel: models.bpe ? path.join(modelBase, models.bpe) : "",
       tokens: models.tokens ? path.join(modelBase, models.tokens) : "",
       encoder: models.encoder ? path.join(modelBase, models.encoder) : "",
       decoder: models.decoder ? path.join(modelBase, models.decoder) : "",
       joiner: models.joiner ? path.join(modelBase, models.joiner) : "",
-      keywordsRaw: keywords.raw || "",
-      keywordsFile: keywords.compiled || "",
+      keywordsRaw: resolveMaybe(keywords.raw || ""),
+      keywordsFile: resolveMaybe(keywords.compiled || ""),
       detectRegex: keywords.regex || "keyword|wake|trigger",
       provider: local.provider || "cpu",
       numThreads: typeof local.threads === "number" ? local.threads : 2
