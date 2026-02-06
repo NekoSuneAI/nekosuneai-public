@@ -1,4 +1,6 @@
 const { config } = require("../config");
+const path = require("path");
+const { spawn } = require("child_process");
 const {
   startRecordingAndRunDeepSpeech,
   voskLoader
@@ -11,12 +13,26 @@ const {
   setupWhisper
 } = require("../Addons/installer");
 
+function startVTuberApp() {
+  const appDir = path.join(__dirname, "app");
+  const child = spawn(process.execPath, ["index.js"], {
+    cwd: appDir,
+    stdio: "inherit"
+  });
+
+  child.on("exit", code => {
+    console.error(`[VTuberAI] app exited with code ${code}`);
+  });
+}
+
 async function startAiSystem() {
   startRecordingAndRunDeepSpeech();
 }
 
 function startVTuberAI() {
   require("log-timestamp");
+
+  startVTuberApp();
 
   if (config.addons.AI.toggle == true) {
     const mode = (config.engineMode || "").toLowerCase();

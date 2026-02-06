@@ -24,6 +24,7 @@ tools/
 config/memory.sqlite
 tts_configs/
 Modules/AUTOAI/VOICEModules/Speakbup.js
+data/
 
 package-lock.json
 

@@ -189,6 +189,7 @@ const legacyConfig = buildLegacyConfig(baseConfig);
 
 module.exports = {
   config: legacyConfig,
+  rawConfig: baseConfig,
   badwords: require("../config/badwords.json"),
   timezone: require("../config/timezone.json"),
   packageJson: require("../package.json")

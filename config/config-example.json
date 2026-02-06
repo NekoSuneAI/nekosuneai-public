@@ -102,6 +102,91 @@
       "vtuberai": {
         "addons": {
           "ai": true
+        },
+        "vnyan": {
+          "ws": "ws://127.0.0.1:8000/vnyan"
+        },
+        "discordbotcfg": {
+          "enable": false,
+          "token": "",
+          "clientId": "",
+          "guildId": "",
+          "channelId": "",
+          "admins": [
+            ""
+          ]
+        },
+        "mic": {
+          "enable": false,
+          "engine": "vosk",
+          "voskModelPath": "./model/vosk/models/vosk-model-en-us-0.22",
+          "voskModelUrl": "https://alphacephei.com/vosk/models/vosk-model-en-us-0.22.zip",
+          "whisperLiteLLMEndpoint": "http://localhost:4550/v1/audio/transcriptions",
+          "whisperLiteLLMApiKey": "",
+          "whisperLiteLLMApiHeader": "Authorization",
+          "whisperModel": "whisper-1",
+          "filters": {
+            "sensitiveKeywords": [
+              "died",
+              "lost",
+              "divorced",
+              "fired"
+            ]
+          }
+        },
+        "tts": {
+          "baseURL": "http://127.0.0.1:3456/tts"
+        },
+        "rvc": {
+          "api": "http://127.0.0.1:5050"
+        },
+        "streamlabs": {
+          "client_id": "",
+          "client_secret": "",
+          "redirect_uri": "http://localhost:3000/streamlabs/callback"
+        },
+        "streamElements": [
+          {
+            "platform": "TwitchNeko",
+            "token": "",
+            "room": ""
+          }
+        ],
+        "twitchchat": {
+          "enable": true,
+          "client_id": "",
+          "client_secret": "",
+          "redirect_uri": "http://localhost:3000/twitch/callback",
+          "scopes": "chat:read chat:edit",
+          "username": "",
+          "options": {
+            "debug": false,
+            "reconnect": true
+          },
+          "channels": [
+            ""
+          ],
+          "onlycmd": false
+        },
+        "filters": {
+          "bullyPhrases": [
+            "AI sucks",
+            "stupid bot",
+            "you're useless",
+            "dumb AI",
+            "trash bot",
+            "go die bot",
+            "no one likes you",
+            "annoying bot",
+            "shut up AI",
+            "worst AI ever"
+          ],
+          "sensitivePatterns": [
+            "died",
+            "death",
+            "passed away",
+            "lost someone"
+          ]
         }
       },
 

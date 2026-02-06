@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Happy",
+    "triggers": ["happy", "joy", "excited", "thrilled", "smile"],
+    "handAction": "wave"
+  },
+  {
+    "name": "Sad",
+    "triggers": ["sad", "depressed", "crying", "upset", "not happy"],
+    "handAction": "down"
+  },
+  {
+    "name": "Angry",
+    "triggers": ["angry", "mad", "furious", "rage"],
+    "handAction": "point"
+  },
+  {
+    "name": "Love",
+    "triggers": ["love", "affection", "caring", "romance", "loved", "romantic"],
+    "handAction": "wave"
+  }
+]
