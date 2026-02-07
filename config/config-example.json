@@ -26,11 +26,9 @@
       }
     }
   },
-
   "runtime": {
     "activeMode": "vrchatai",
     "modes": {
-
       "vrchatai": {
         "platforms": {
           "vrchat": {
@@ -53,7 +51,6 @@
               "whitelist": []
             }
           },
-
           "discord": {
             "enabled": true,
             "auth": {
@@ -64,7 +61,9 @@
               "serverID": "",
               "channelID": ""
             },
-            "developerIDs": [""],
+            "developerIDs": [
+              ""
+            ],
             "cooldownMessages": [
               "Slow It Down Fam...",
               "Spam Isn't Cool Fam....",
@@ -91,14 +90,12 @@
             "serverID": "DISCORDSERVERID"
           }
         },
-
         "addons": {
           "ai": true,
           "friendsSystem": true,
           "music": true
         }
       },
-
       "vtuberai": {
         "addons": {
           "ai": true
@@ -189,14 +186,15 @@
           ]
         }
       },
-
       "assistant": {
         "addons": {
           "ai": {
             "enabled": true,
             "wakeword": {
               "enabled": true,
-              "phrases": ["hey neko"],
+              "phrases": [
+                "hey neko"
+              ],
               "chunkSeconds": 2.5,
               "cooldownMs": 1500,
               "sensitivity": "high",
@@ -204,16 +202,16 @@
                 "backend": "sherpa-onnx",
                 "provider": "cpu",
                 "threads": 2,
-              "models": {
-                "dir": "tools/wakeword/models",
-                "name": "sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01",
-                "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01.tar.bz2",
-                "bpe": "bpe.model",
-                "tokens": "tokens.txt",
-                "encoder": "encoder-epoch-12-avg-2-chunk-16-left-64.onnx",
-                "decoder": "decoder-epoch-12-avg-2-chunk-16-left-64.onnx",
-                "joiner": "joiner-epoch-12-avg-2-chunk-16-left-64.onnx"
-              },
+                "models": {
+                  "dir": "tools/wakeword/models",
+                  "name": "sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01",
+                  "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01.tar.bz2",
+                  "bpe": "bpe.model",
+                  "tokens": "tokens.txt",
+                  "encoder": "encoder-epoch-12-avg-2-chunk-16-left-64.onnx",
+                  "decoder": "decoder-epoch-12-avg-2-chunk-16-left-64.onnx",
+                  "joiner": "joiner-epoch-12-avg-2-chunk-16-left-64.onnx"
+                },
                 "keywords": {
                   "raw": "tools/wakeword/keywords_raw.txt",
                   "compiled": "tools/wakeword/keywords.txt",
@@ -227,9 +225,7 @@
       }
     }
   },
-
   "globalAddons": {
-
     "ai": {
       "enabled": true,
       "voice": "en_US-lessac-medium",
@@ -249,9 +245,21 @@
         "apiKey": "",
         "baseURL": "https://chat.nekosunevr.co.uk/api",
         "systemMessage": ""
+      },
+      "ollama": {
+        "enabled": true,
+        "baseURL": "http://127.0.0.1:11434",
+        "model": "mistral:7b",
+        "autoPull": true,
+        "autoStart": true,
+        "autoInstall": true,
+        "installDir": "tools/ollama",
+        "fallbackOnAnyError": true,
+        "openaiCompat": true,
+        "requestTimeoutMs": 120000,
+        "pullTimeoutMs": 1800000
       }
     },
-
     "search": {
       "provider": "searxng",
       "baseURL": "https://searxng.nekosunevr.co.uk",
@@ -269,7 +277,6 @@
         "quran"
       ]
     },
-
     "music": {
       "enabled": false,
       "baseURL": "https://dl.ballisticok.xyz",
@@ -280,13 +287,11 @@
         "max": 90
       }
     },
-
     "filters": {
       "explicit": {
         "jokes": false
       }
     },
-
     "apiKeys": {
       "weather": "",
       "time": "",

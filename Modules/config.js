@@ -150,6 +150,25 @@ function buildLegacyConfig(config) {
           gptModel: globalAddons.ai?.gpt?.model || "",
           systemmsg: globalAddons.ai?.gpt?.systemMessage || ""
         },
+        ollama: {
+          enabled: toBool(globalAddons.ai?.ollama?.enabled, true),
+          baseURL: globalAddons.ai?.ollama?.baseURL || "http://127.0.0.1:11434",
+          model: globalAddons.ai?.ollama?.model || "",
+          autoPull: toBool(globalAddons.ai?.ollama?.autoPull, true),
+          autoStart: toBool(globalAddons.ai?.ollama?.autoStart, true),
+          autoInstall: toBool(globalAddons.ai?.ollama?.autoInstall, false),
+          installDir: globalAddons.ai?.ollama?.installDir || "tools/ollama",
+          fallbackOnAnyError: toBool(globalAddons.ai?.ollama?.fallbackOnAnyError, true),
+          openaiCompat: toBool(globalAddons.ai?.ollama?.openaiCompat, true),
+          requestTimeoutMs:
+            typeof globalAddons.ai?.ollama?.requestTimeoutMs === "number"
+              ? globalAddons.ai.ollama.requestTimeoutMs
+              : 120000,
+          pullTimeoutMs:
+            typeof globalAddons.ai?.ollama?.pullTimeoutMs === "number"
+              ? globalAddons.ai.ollama.pullTimeoutMs
+              : 1800000
+        },
         SearxNG: {
           baseURL: globalAddons.search?.baseURL || "",
           maxResults: globalAddons.search?.maxResults || 5,

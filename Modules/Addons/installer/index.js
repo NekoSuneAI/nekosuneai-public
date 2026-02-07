@@ -42,6 +42,7 @@ const WHISPER_BIN_DIR = path.join(WHISPER_DIR, "bin");
 const WHISPER_MODELS_DIR = path.join(WHISPER_DIR, "models");
 const WAKEWORD_DIR = path.join(TOOLS_DIR, "wakeword");
 const WAKEWORD_MODELS_DIR = path.join(WAKEWORD_DIR, "models");
+const OLLAMA_DIR = path.join(TOOLS_DIR, "ollama");
 
 const VOICE_MODELS = require("../../../config/voice_dl.json");
 
@@ -83,6 +84,14 @@ async function extractTarBz2(archivePath, extractTo) {
   );
   console.log("Extraction complete.");
 }
+
+async function extractTarGz(archivePath, extractTo) {
+  const tar = require("tar");
+  console.log(`Extracting ${archivePath} to ${extractTo}`);
+  await fs.mkdir(extractTo, { recursive: true });
+  await tar.x({ file: archivePath, cwd: extractTo });
+  console.log("Extraction complete.");
+}
 function renderProgress(filename, received, total) {
   const barWidth = 30;
   const percent = total ? received / total : 0;
@@ -90,9 +99,14 @@ function renderProgress(filename, received, total) {
   const emptyBar = barWidth - filledBar;
   const bar = "#".repeat(filledBar) + "-".repeat(emptyBar);
   const percentage = (percent * 100).toFixed(1);
-  readline.clearLine(process.stdout, 0);
-  readline.cursorTo(process.stdout, 0);
-  process.stdout.write(`Downloading ${filename} [${bar}] ${percentage}% (${received}/${total} bytes)`);
+  const line = `Downloading ${filename} [${bar}] ${percentage}% (${received}/${total} bytes)`;
+  if (process.stdout.isTTY) {
+    readline.clearLine(process.stdout, 0);
+    readline.cursorTo(process.stdout, 0);
+    process.stdout.write(line);
+  } else {
+    process.stdout.write(`\r${line}`);
+  }
 }
 
 async function downloadFile(url, dest) {
@@ -390,6 +404,56 @@ async function setupWakeword() {
   }
 }
 
+async function setupOllama(options = {}) {
+  const logger = console;
+  const platform = os.platform();
+  const arch = os.arch();
+  const installDir = options.installDir || OLLAMA_DIR;
+
+  await fs.mkdir(installDir, { recursive: true });
+  await fs.mkdir(DOWNLOADS_DIR, { recursive: true });
+
+  if (platform === "win32") {
+    const zipUrl = "https://ollama.com/download/ollama-windows-amd64.zip";
+    const zipPath = path.join(DOWNLOADS_DIR, "ollama-windows-amd64.zip");
+    if (!(await fileExists(path.join(installDir, "ollama.exe")))) {
+      logger.info("Downloading Ollama for Windows...");
+      await downloadFile(zipUrl, zipPath);
+      await extractZip(zipPath, installDir);
+      await fs.unlink(zipPath);
+      logger.info("Ollama extracted for Windows.");
+    } else {
+      logger.info("Ollama already installed, skipping download.");
+    }
+    return;
+  }
+
+  if (platform === "linux") {
+    const archLabel = arch === "arm64" ? "arm64" : "amd64";
+    const tarUrl = `https://ollama.com/download/ollama-linux-${archLabel}.tgz`;
+    const tarPath = path.join(DOWNLOADS_DIR, `ollama-linux-${archLabel}.tgz`);
+    const binPath = path.join(installDir, "bin", "ollama");
+
+    if (!(await fileExists(binPath))) {
+      logger.info(`Downloading Ollama for Linux (${archLabel})...`);
+      await downloadFile(tarUrl, tarPath);
+      await extractTarGz(tarPath, installDir);
+      await fs.unlink(tarPath);
+      try {
+        await fs.chmod(binPath, 0o755);
+      } catch {
+        // best-effort
+      }
+      logger.info("Ollama extracted for Linux.");
+    } else {
+      logger.info("Ollama already installed, skipping download.");
+    }
+    return;
+  }
+
+  throw new Error(`Unsupported platform for Ollama installer: ${platform}`);
+}
+
 module.exports = {
   TOOLS_DIR,
   PYTHON_DIR,
@@ -406,9 +470,11 @@ module.exports = {
   WHISPER_MODELS_DIR,
   WAKEWORD_DIR,
   WAKEWORD_MODELS_DIR,
+  OLLAMA_DIR,
   ensurePortablePython,
   ensureVoskModelDownloaded,
   setupPiper,
   setupWhisper,
-  setupWakeword
+  setupWakeword,
+  setupOllama
 };
