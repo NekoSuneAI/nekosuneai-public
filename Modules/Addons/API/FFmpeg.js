@@ -15,6 +15,9 @@ async function pathExists(p) {
 }
 
 async function findFfmpegExe(dir) {
+  if (!(await pathExists(dir))) {
+    return null;
+  }
   const entries = await fs.promises.readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
@@ -67,6 +70,7 @@ async function ensureFfmpegPath(options = {}) {
 
   const repoRoot = path.resolve(__dirname, "..", "..", "..");
   const toolsDir = options.toolsDir || path.join(repoRoot, "tools", "ffmpeg");
+  await fs.promises.mkdir(toolsDir, { recursive: true });
 
   let ffmpegExe = await findFfmpegExe(toolsDir);
   if (ffmpegExe) {
