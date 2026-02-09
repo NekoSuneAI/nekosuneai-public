@@ -291,11 +291,11 @@ async function VRCFriends () {
           throwOnError: true
         })
         console.log(`Friend Request Accepted on ${data.senderUsername}`)
-        await sleep(3000)
+        await sleep(500)
         requireFetch()(`http://localhost:9065/v4/self/get`)
           .then(res => res.json())
           .then(async resp => {
-            await sleep(3000)
+            await sleep(500)
             oscClient.send(
               new Message(
                 '/chatbox/input',
@@ -322,11 +322,11 @@ async function VRCFriends () {
           path: { notificationId: data.id },
           throwOnError: true
         })
-        await sleep(3000)
+        await sleep(500)
         requireFetch()(`http://localhost:9065/v4/self/get`)
           .then(res => res.json())
           .then(async resp => {
-            await sleep(3000)
+            await sleep(500)
             oscClient.send(
               new Message(
                 '/chatbox/input',

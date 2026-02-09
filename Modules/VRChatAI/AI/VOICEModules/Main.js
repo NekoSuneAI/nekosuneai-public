@@ -17,7 +17,7 @@ const { sendToWebhookchat } = require("../Addons/Webhooks");
 
 const { playSound } = require("../Addons/Audios/AudioSounds");
 const { stopAudioSound } = require("../Addons/Audios/AudioDownloader");
-const { startRenderProgress, stopRenderProgress } = require("./Speak");
+const { startRenderProgress, stopRenderProgress, getAvgRenderSeconds } = require("./Speak");
 const { isMicDisabled } = require("../../../Addons/VoiceState");
 
 const fs = require("fs");
@@ -232,7 +232,23 @@ async function performSpeechRecognition(audioFile) {
     return;
   }
 
-  startRenderProgress(2 * 60);
+  let estimatedSeconds = 120;
+  try {
+    if (fs.existsSync(audioFile)) {
+      const stats = fs.statSync(audioFile);
+      const bytesPerSecond = 16000 * 2; // 16kHz mono 16-bit
+      const audioSeconds = Math.max(1, Math.ceil(stats.size / bytesPerSecond));
+      const overhead = 8;
+      estimatedSeconds = Math.min(180, Math.max(6, audioSeconds + overhead));
+      const avgSeconds = getAvgRenderSeconds();
+      if (avgSeconds) {
+        const paddedAvg = Math.round(avgSeconds * 1.2);
+        estimatedSeconds = Math.min(600, Math.max(estimatedSeconds, paddedAvg));
+      }
+    }
+  } catch (_) {}
+  estimatedSeconds = Math.max(estimatedSeconds, 300);
+  startRenderProgress(estimatedSeconds);
 
   try {
     const sttProvider = (config.addons.AI.sttProvider || "openai").toLowerCase();

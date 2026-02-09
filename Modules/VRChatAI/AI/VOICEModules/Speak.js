@@ -15,9 +15,81 @@ const axios = require("axios");
 const fetch = global.fetch;
 const { convertWithRvc } = require("../../../Addons/API/RVC");
 const { ensureDir, getModeDataDir } = require("../../../Addons/DataPaths");
+let wanakana;
+let pinyinLib;
+try {
+  wanakana = require("wanakana");
+} catch (_) {}
+try {
+  pinyinLib = require("pinyin");
+} catch (_) {}
 
 function getAudioDir() {
   return ensureDir(path.join(getModeDataDir(), "audio"));
+}
+
+let voiceIndexByLang = null;
+function loadVoiceIndex() {
+  if (voiceIndexByLang) return voiceIndexByLang;
+  const voicePath = path.resolve(__dirname, "../../../..", "config", "voice_dl.json");
+  try {
+    const raw = fsn.readFileSync(voicePath, "utf-8");
+    const list = JSON.parse(raw);
+    const index = {};
+    for (const item of list) {
+      const name = item?.name;
+      if (!name) continue;
+      const locale = name.split("-")[0];
+      const lang = (locale || "").split("_")[0];
+      if (!lang) continue;
+      if (!index[lang]) index[lang] = [];
+      index[lang].push(name);
+    }
+    voiceIndexByLang = index;
+  } catch (err) {
+    voiceIndexByLang = {};
+  }
+  return voiceIndexByLang;
+}
+
+function pickPiperVoiceForLang(lang) {
+  const index = loadVoiceIndex();
+  const fallback = config.addons.AI.voice || "en_US-amy-medium";
+  if (!lang) return fallback;
+  if (lang === "ja" || lang === "zh") {
+    // Use fallback English voice to avoid unsupported phoneme types on some Piper builds.
+    return fallback;
+  }
+  const list = index[lang];
+  if (Array.isArray(list) && list.length) {
+    return list[0];
+  }
+  return fallback;
+}
+
+function romanizeForTts(text, lang) {
+  if (!text) return text;
+  const collapseCjk = input =>
+    input.replace(/([\u3040-\u30FF\u4E00-\u9FFF])\s+([\u3040-\u30FF\u4E00-\u9FFF])/g, "$1$2");
+  const stripCjk = input => input.replace(/[\u3040-\u30FF\u4E00-\u9FFF]+/g, " ");
+  if (lang === "ja" && wanakana && typeof wanakana.toRomaji === "function") {
+    const romaji = wanakana.toRomaji(collapseCjk(text));
+    return stripCjk(romaji).replace(/\s{2,}/g, " ").trim();
+  }
+  if (lang === "zh" && pinyinLib && typeof pinyinLib.pinyin === "function") {
+    const parts = pinyinLib.pinyin(collapseCjk(text), { style: pinyinLib.STYLE_TONE2 });
+    const py = parts.map(syl => syl.join("")).join(" ");
+    return stripCjk(py).replace(/\s{2,}/g, " ").trim();
+  }
+  return text;
+}
+
+function stripCjkForDisplay(text, lang) {
+  if (!text) return text;
+  if (lang === "ja" || lang === "zh") {
+    return text.replace(/[\u3040-\u30FF\u4E00-\u9FFF]+/g, " ").replace(/\s{2,}/g, " ").trim();
+  }
+  return text;
 }
 
 function requireFetch() {
@@ -27,7 +99,7 @@ function requireFetch() {
   return fetch;
 }
 
-async function runTTSRVC(text, voicegender, voice, TTS_DIR) {
+async function runTTSRVC(text, voicegender, voice, TTS_DIR, options = {}) {
     await fsn.promises.mkdir(TTS_DIR, { recursive: true });
 
     // -----------------------------
@@ -74,6 +146,10 @@ async function runTTSRVC(text, voicegender, voice, TTS_DIR) {
         gender = "en_US-amy-medium"
         pitch = 11
     }
+
+    if (voicegender) {
+      gender = voicegender;
+    }
   
     // -----------------------------
     // 2. Generate Base TTS
@@ -82,6 +158,10 @@ async function runTTSRVC(text, voicegender, voice, TTS_DIR) {
     await generateTts(text, gender, rawFile);
 
     console.log(`Using RVC model: ${rvcModel}`);
+
+    if (options.piperOnly === true) {
+      return rawFile;
+    }
     
     // -----------------------------
     // 3. Convert using RVC API
@@ -124,6 +204,8 @@ async function runTTSRVC(text, voicegender, voice, TTS_DIR) {
 
 let stopRenderInterval = null;
 let stopWaitLoop = null;
+let lastRenderStartAt = null;
+let renderAvgMs = null;
 
 function startRenderProgress(durationSeconds = 60) {
   if (stopRenderInterval) {
@@ -134,6 +216,7 @@ function startRenderProgress(durationSeconds = 60) {
     stopWaitLoop();
     stopWaitLoop = null;
   }
+  lastRenderStartAt = Date.now();
 
   const totalSeconds = Math.max(1, durationSeconds);
   let elapsed = 0;
@@ -163,6 +246,21 @@ function startRenderProgress(durationSeconds = 60) {
     }
   };
 
+  const formatDuration = total => {
+    const secs = Math.max(0, Math.round(total));
+    if (secs < 60) {
+      return `${secs} second${secs === 1 ? "" : "s"}`;
+    }
+    const mins = Math.floor(secs / 60);
+    const rem = secs % 60;
+    if (mins < 60) {
+      return `${mins} minute${mins === 1 ? "" : "s"}${rem ? ` ${rem} second${rem === 1 ? "" : "s"}` : ""}`;
+    }
+    const hours = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    return `${hours} hour${hours === 1 ? "" : "s"}${remMins ? ` ${remMins} minute${remMins === 1 ? "" : "s"}` : ""}`;
+  };
+
   const sendProgress = () => {
     const now = Date.now();
     if (now - lastSentAt < minSendIntervalMs) {
@@ -177,9 +275,9 @@ function startRenderProgress(durationSeconds = 60) {
     const percent = Math.round(progress * 100).toString().padStart(3, "0");
     sendMSGOSC(
       `[${bar}] ${percent}% loaded.\n` +
-      `Please wait up to ${totalSeconds} seconds...\n` +
+      `Please wait up to ${formatDuration(totalSeconds)}...\n` +
       `I'm thinking of a response... Depends my Hardware\n` +
-      `${remaining}s remaining`
+      `${formatDuration(remaining)} remaining`
     );
   };
 
@@ -223,12 +321,22 @@ function stopRenderProgress(options = {}) {
     stopWaitAudio();
     return;
   }
+  if (lastRenderStartAt) {
+    const elapsed = Date.now() - lastRenderStartAt;
+    renderAvgMs = renderAvgMs ? (renderAvgMs * 0.7 + elapsed * 0.3) : elapsed;
+    lastRenderStartAt = null;
+  }
   if (stopRenderInterval) {
     stopRenderInterval();
     stopRenderInterval = null;
   }
   stopRenderWaitSounds();
   stopWaitAudio();
+}
+
+function getAvgRenderSeconds() {
+  if (!renderAvgMs) return null;
+  return Math.max(1, Math.round(renderAvgMs / 1000));
 }
 
 // Store TTS configurations and user preferences
@@ -576,7 +684,7 @@ function waitMs(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function readAndPrintSentencesAdminCmds(sentences, audioFile, messageid) {
+async function readAndPrintSentencesAdminCmds(sentences, audioFile, messageid, options = {}) {
   const {
     sendToWebhookchatResponse
   } = require("../Addons/Webhooks");
@@ -597,13 +705,27 @@ async function readAndPrintSentencesAdminCmds(sentences, audioFile, messageid) {
   }
   const totalPages = cleanedSentences.length;
   const audioFiles = [];
+  const lang = options.lang || "en";
+  const piperVoice = pickPiperVoiceForLang(lang);
+  const allowRvcNonEnglish = config.addons.AI.RVC_NON_ENGLISH === true;
+  const piperOnly = lang !== "en" && !allowRvcNonEnglish;
+  const ttsGapMs =
+    typeof config.addons.AI?.ttsGapMs === "number" ? config.addons.AI.ttsGapMs : 500;
 
-  for (const cleanSentence of cleanedSentences) {
+  for (let idx = 0; idx < cleanedSentences.length; idx++) {
+    const cleanSentence = cleanedSentences[idx];
+    const displaySentence = stripCjkForDisplay(cleanSentence, lang);
+    cleanedSentences[idx] = displaySentence;
+    const ttsText = romanizeForTts(
+      prepareTtsText(displaySentence.replace('[BROADCAST] ', '').replace('\n', '')),
+      lang
+    );
     const audioFileAi = await runTTSRVC(
-      prepareTtsText(cleanSentence.replace('[BROADCAST] ', '').replace('\n', '')),
-      null,
+      ttsText,
+      piperVoice,
       config.addons.AI.GPTText.gptModel,
-      getAudioDir()
+      getAudioDir(),
+      { piperOnly }
     );
     audioFiles.push(audioFileAi);
   }
@@ -629,7 +751,7 @@ async function readAndPrintSentencesAdminCmds(sentences, audioFile, messageid) {
     } catch (err) {
       console.log("Failed to delete TTS file:", err.message);
     }
-    await waitMs(3500);
+    await waitMs(ttsGapMs);
   }
 
   console.log("Finished reading all sentences.");
@@ -640,7 +762,7 @@ async function readAndPrintSentencesAdminCmds(sentences, audioFile, messageid) {
   }
 }
 
-async function readAndPrintSentences(sentences, audioFile, messageid) {
+async function readAndPrintSentences(sentences, audioFile, messageid, options = {}) {
   const { startRecordingAndRunDeepSpeech } = require("../VOICEModules/Main");
   const { isMicDisabled } = require("../../../Addons/VoiceState");
   const {
@@ -663,13 +785,27 @@ async function readAndPrintSentences(sentences, audioFile, messageid) {
   }
   const totalPages = cleanedSentences.length;
   const audioFiles = [];
+  const lang = options.lang || "en";
+  const piperVoice = pickPiperVoiceForLang(lang);
+  const allowRvcNonEnglish = config.addons.AI.RVC_NON_ENGLISH === true;
+  const piperOnly = lang !== "en" && !allowRvcNonEnglish;
+  const ttsGapMs =
+    typeof config.addons.AI?.ttsGapMs === "number" ? config.addons.AI.ttsGapMs : 500;
 
-  for (const cleanSentence of cleanedSentences) {
+  for (let idx = 0; idx < cleanedSentences.length; idx++) {
+    const cleanSentence = cleanedSentences[idx];
+    const displaySentence = stripCjkForDisplay(cleanSentence, lang);
+    cleanedSentences[idx] = displaySentence;
+    const ttsText = romanizeForTts(
+      prepareTtsText(displaySentence.replace('[BROADCAST] ', '').replace('\n', '')),
+      lang
+    );
     const audioFileAi = await runTTSRVC(
-      prepareTtsText(cleanSentence.replace('[BROADCAST] ', '').replace('\n', '')),
-      null,
+      ttsText,
+      piperVoice,
       config.addons.AI.GPTText.gptModel,
-      getAudioDir()
+      getAudioDir(),
+      { piperOnly }
     );
     audioFiles.push(audioFileAi);
   }
@@ -694,7 +830,7 @@ async function readAndPrintSentences(sentences, audioFile, messageid) {
     } catch (err) {
       console.log("Failed to delete TTS file:", err.message);
     }
-    await waitMs(3500);
+    await waitMs(ttsGapMs);
   }
 
   console.log("Finished reading all sentences.");
@@ -716,5 +852,6 @@ module.exports = {
   stopRenderProgress,
   stopRenderWaitSounds,
   readAndPrintSentencesAdminCmds,
-  loadTtsConfigs
+  loadTtsConfigs,
+  getAvgRenderSeconds
 };

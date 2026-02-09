@@ -9,6 +9,7 @@ lerna-debug.log*
 tools/**/*
 !tools/music-downloader.js
 !tools/ensure-ffmpeg.js
+!tools/update-voice-dl.js
 node_modules.zip
 
 # IGNORE OTHER STUFF

@@ -80,6 +80,69 @@ const { resetMemory } = require("../Addons/DB/memoryStore");
 const { WikipediaGrabber } = require("../../../Addons/API/WikipediaRest");
 const { FandomGrabber } = require("../../../Addons/API/FandomRest"); 
 const { SearxngGrabber } = require("../../../Addons/API/SearxngRest");
+const { franc } = require("franc-min");
+
+const ISO3_TO_LANG = {
+  eng: "en",
+  spa: "es",
+  fra: "fr",
+  fre: "fr",
+  deu: "de",
+  ger: "de",
+  rus: "ru",
+  swe: "sv",
+  nld: "nl",
+  dut: "nl",
+  dan: "da",
+  por: "pt",
+  pol: "pl",
+  jpn: "ja",
+  cmn: "zh",
+  zho: "zh",
+  chi: "zh"
+};
+
+const LANG_NAMES = {
+  en: "English",
+  es: "Spanish",
+  fr: "French",
+  de: "German",
+  ru: "Russian",
+  sv: "Swedish",
+  nl: "Dutch",
+  da: "Danish",
+  pt: "Portuguese",
+  pl: "Polish",
+  ja: "Japanese",
+  zh: "Chinese"
+};
+
+function detectLanguage(text) {
+  const sample = (text || "").trim();
+  if (sample.length < 3) return "en";
+  const code3 = franc(sample, { minLength: 3 });
+  if (!code3 || code3 === "und") return "en";
+  return ISO3_TO_LANG[code3] || "en";
+}
+
+function detectLanguageWithHints(text) {
+  const lower = (text || "").toLowerCase();
+  if (lower.includes("japanese") || lower.includes("japan")) return "ja";
+  if (lower.includes("chinese") || lower.includes("china") || lower.includes("mandarin")) return "zh";
+  return detectLanguage(text);
+}
+
+function buildLangPromptPrefix(lang) {
+  if (!lang || lang === "en") return "";
+  const name = LANG_NAMES[lang] || lang;
+  if (lang === "ja") {
+    return "Please reply in Japanese using romaji only (no kana or kanji). Do not include Japanese characters.\n";
+  }
+  if (lang === "zh") {
+    return "Please reply in Chinese using pinyin only (latin letters). Do not include Chinese characters.\n";
+  }
+  return `Please reply in ${name}.\n`;
+}
 
 // Split text into chunks of ≤129 characters
 function splitIntoChunks(text, maxLen = 129) {
@@ -206,6 +269,52 @@ function stripLinks(text) {
   return cleaned;
 }
 
+function stripMarkdown(text) {
+  if (!text) return text;
+  let cleaned = text;
+  cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, "$1");
+  cleaned = cleaned.replace(/\*([^*]+)\*/g, "$1");
+  cleaned = cleaned.replace(/`([^`]+)`/g, "$1");
+  cleaned = cleaned.replace(/^\s*assistant:\s*/i, "");
+  return cleaned;
+}
+
+function stripRoleBlocks(text) {
+  if (!text) return text;
+  return text
+    .replace(/###\s*(user|assistant|system)\s*:/gi, "")
+    .replace(/^\s*(user|assistant|system)\s*:\s*/gim, "")
+    .replace(/^\s*#{2,}\s*(user|assistant|system)\s*$/gim, "")
+    .replace(/\bNekoSuneAI\s+said:\s*/gi, "")
+    .replace(/\bNekoSuneAI\s+says:\s*/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function stripEmojisText(text) {
+  if (!text) return text;
+  return text.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}\u200d\uFE0F]+/gu, "").replace(/\s{2,}/g, " ").trim();
+}
+
+function stripCjk(text) {
+  if (!text) return text;
+  return text.replace(/[\u3040-\u30FF\u4E00-\u9FFF]+/g, " ").replace(/\s{2,}/g, " ").trim();
+}
+
+function hasCjk(text) {
+  if (!text) return false;
+  return /[\u3040-\u30FF\u4E00-\u9FFF]/.test(text);
+}
+
+function applyLanguageOutputFilter(text, lang) {
+  if (!text) return text;
+  let cleaned = stripRoleBlocks(stripMarkdown(text));
+  if (lang === "ja" || lang === "zh" || hasCjk(cleaned)) {
+    cleaned = stripCjk(cleaned);
+  }
+  return stripEmojisText(cleaned);
+}
+
 function stripLinksFromArray(items) {
   if (!Array.isArray(items)) return items;
   return items.map(item => stripLinks(item));
@@ -235,15 +344,18 @@ async function respondWithGPT(prompt, audioFile, messageid, options = {}) {
   const {
     sendToWebhookchatResponse
   } = require("../Addons/Webhooks");
+  const lang = options.lang || "en";
+  const promptWithLang = `${buildLangPromptPrefix(lang)}${prompt}`;
   const response = await RESPGPT(
-    prompt,
+    promptWithLang,
     config.addons.AI.GPTText.gptModel
   );
   //console.log('[gpt api dev]', response)
   if (response.status == 200) {
-    const cleanedContent = options.stripLinks
+    const cleanedContentRaw = options.stripLinks
       ? stripLinks(response.content)
       : response.content;
+    const cleanedContent = applyLanguageOutputFilter(cleanedContentRaw, lang);
     const baseArray = Array.isArray(response.contentarray) && response.contentarray.length
       ? response.contentarray
       : [response.content];
@@ -251,9 +363,12 @@ async function respondWithGPT(prompt, audioFile, messageid, options = {}) {
       baseArray.length === 1 && typeof baseArray[0] === "string" && baseArray[0].length > 160
         ? splitIntoChunks(baseArray[0])
         : baseArray;
-    const cleanedArray = options.stripLinks
+    const cleanedArrayRaw = options.stripLinks
       ? stripLinksFromArray(normalizedArray)
       : normalizedArray;
+    const cleanedArray = Array.isArray(cleanedArrayRaw)
+      ? cleanedArrayRaw.map(item => applyLanguageOutputFilter(item, lang))
+      : cleanedArrayRaw;
 
     console.log("[ChatGPT Local] Recognized text:", cleanedContent);
     writeToLogFile("[ChatGPT Local] Recognized text: " + cleanedContent);
@@ -268,7 +383,8 @@ async function respondWithGPT(prompt, audioFile, messageid, options = {}) {
       await readAndPrintSentences(
         cleanedArray,
         audioFile,
-        messageid
+        messageid,
+        { lang }
       );
     }
   } else if (response.status == 504) {
@@ -283,7 +399,7 @@ async function respondWithGPT(prompt, audioFile, messageid, options = {}) {
       messageid
     );
     sendMSGOSC(responsetext);
-    readAndPrintSentences(responsetext, audioFile, messageid);
+    readAndPrintSentences(responsetext, audioFile, messageid, { lang });
   } else {
     const {
       startRecordingAndRunDeepSpeech
@@ -296,7 +412,7 @@ async function respondWithGPT(prompt, audioFile, messageid, options = {}) {
   }
 }
 
-async function respondSearchBlocked(audioFile, messageid) {
+async function respondSearchBlocked(audioFile, messageid, lang) {
   const {
     sendToWebhookchatResponse
   } = require("../Addons/Webhooks");
@@ -304,11 +420,13 @@ async function respondSearchBlocked(audioFile, messageid) {
     "Sorry, we are not allowed to search this because we want to keep the VRChat community safe."
   ];
   await sendToWebhookchatResponse(responsetext[0], messageid);
-  await readAndPrintSentences(responsetext, audioFile, messageid);
+  await readAndPrintSentences(responsetext, audioFile, messageid, { lang: lang || "en" });
 }
 
 async function RunCommands(audioFile, result, messageid) {
   console.log(result)
+  const autoLang = config.addons.AI?.autoLang === true;
+  const detectedLang = autoLang ? detectLanguageWithHints(result?.[0]?.text || "") : "en";
   switch (checkCondition(result[0].text)) {
     case "timeQuery":
       {
@@ -319,13 +437,13 @@ async function RunCommands(audioFile, result, messageid) {
           if (!resp || resp.error || !resp.ampm) {
             const msg = "Sorry, I couldn't find that time zone.";
             writeToLogFile("[TimeZone API] Error: " + (resp?.error || "Unknown time zone."));
-            await readAndPrintSentences([msg], audioFile, messageid);
+            await readAndPrintSentences([msg], audioFile, messageid, { lang: detectedLang });
             break;
           }
           const datafound = `Time in ${originalText}: ${resp.ampm}`;
           writeToLogFile("[TimeZone API] Recognized: " + datafound);
           const responsetext = [datafound];
-          await readAndPrintSentences(responsetext, audioFile, messageid);
+          await readAndPrintSentences(responsetext, audioFile, messageid, { lang: detectedLang });
         } catch (error) {
           console.error(error);
         }
@@ -340,7 +458,7 @@ async function RunCommands(audioFile, result, messageid) {
           if (!resp || resp.error) {
             const msg = "Sorry, I couldn't find that location.";
             writeToLogFile("[NewYear] Error: " + (resp?.error || "Unknown location."));
-            await readAndPrintSentences([msg], audioFile, messageid);
+            await readAndPrintSentences([msg], audioFile, messageid, { lang: detectedLang });
             break;
           }
           const hasDays = typeof resp.days === "number" && resp.days > 0;
@@ -349,7 +467,7 @@ async function RunCommands(audioFile, result, messageid) {
             : `There are ${resp.hours} hours, ${resp.minutes} minutes, and ${resp.seconds} seconds until New Year's in ${resp.location}.`;
           writeToLogFile("[NewYear] Recognized: " + datafound);
           const responsetext = [datafound];
-          await readAndPrintSentences(responsetext, audioFile, messageid);
+          await readAndPrintSentences(responsetext, audioFile, messageid, { lang: detectedLang });
         } catch (error) {
           console.error(error);
         }
@@ -364,7 +482,7 @@ async function RunCommands(audioFile, result, messageid) {
         console.log("[Weather API] Error: No API key found.");
         writeToLogFile("[Weather API] Error: No API key found.");
         var responsetext = ["Error: No API key found for Weather Endpoint."];
-        readAndPrintSentences(responsetext, audioFile, messageid);
+        readAndPrintSentences(responsetext, audioFile, messageid, { lang: detectedLang });
       } else {
         const { WeatherGrabber } = require("../../../Addons/API/Weathers");
         var originalText = result[0].text.toLowerCase();
@@ -373,7 +491,7 @@ async function RunCommands(audioFile, result, messageid) {
             console.log(resp);
             writeToLogFile("[Weather API] Recognized: " + resp);
             var responsetext = [resp];
-            readAndPrintSentences(responsetext, audioFile, messageid);
+            readAndPrintSentences(responsetext, audioFile, messageid, { lang: detectedLang });
           })
           .catch(error => {
             console.error(error);
@@ -385,7 +503,7 @@ async function RunCommands(audioFile, result, messageid) {
         const { JokesGrabber } = require("../../../Addons/API/Jokes");
         try {
           const resp = await JokesGrabber(config.addons.filters.explicit.joke);
-          await readAndPrintSentences(resp.resp, audioFile, messageid);
+          await readAndPrintSentences(resp.resp, audioFile, messageid, { lang: detectedLang });
           writeToLogFile(resp);
         } catch (error) {
           console.error(error);
@@ -394,13 +512,13 @@ async function RunCommands(audioFile, result, messageid) {
       break;
     case "resetQuery":
       await resetMemory();
-      await readAndPrintSentences(['Memory has been Reset.'], audioFile, messageid);
+      await readAndPrintSentences(['Memory has been Reset.'], audioFile, messageid, { lang: detectedLang });
       break;
     case "wikiQuery":
       try {
         const resp = await WikipediaGrabber(result[0].text.replace("wiki", "").replace("search wikipedia", "").trim());
         const responsetext = splitIntoChunks(resp);
-        await readAndPrintSentences(responsetext, audioFile, messageid);
+        await readAndPrintSentences(responsetext, audioFile, messageid, { lang: detectedLang });
         writeToLogFile(responsetext);
       } catch (error) {
         console.error(error);
@@ -410,7 +528,7 @@ async function RunCommands(audioFile, result, messageid) {
       try {
         const resp = await FandomGrabber(result[0].text.replace("fandom", "").replace("search vrchat legends", "").replace("search vr chat legends", "").trim());
         const responsetext = splitIntoChunks(resp);
-        await readAndPrintSentences(responsetext, audioFile, messageid);
+        await readAndPrintSentences(responsetext, audioFile, messageid, { lang: detectedLang });
         writeToLogFile(responsetext);
       } catch (error) {
         console.error(error);
@@ -431,7 +549,7 @@ async function RunCommands(audioFile, result, messageid) {
           }
         }
         if (config.addons.music?.toggle === false) {
-          await readAndPrintSentences(["Music is disabled to this bot. We cant play music for you."], audioFile, messageid);
+          await readAndPrintSentences(["Music is disabled to this bot. We cant play music for you."], audioFile, messageid, { lang: detectedLang });
           break;
         }
         try {
@@ -441,13 +559,13 @@ async function RunCommands(audioFile, result, messageid) {
           const input = url || query;
           const enqueueResp = await enqueueMusic(input);
           if (enqueueResp?.error) {
-            await readAndPrintSentences([enqueueResp.error], audioFile, messageid);
+            await readAndPrintSentences([enqueueResp.error], audioFile, messageid, { lang: detectedLang });
             break;
           }
         } catch (error) {
           const errorMessage = `Music playback failed: ${error.message}`;
           console.error(errorMessage);
-          await readAndPrintSentences([errorMessage], audioFile, messageid);
+          await readAndPrintSentences([errorMessage], audioFile, messageid, { lang: detectedLang });
           writeToLogFile(errorMessage);
         }
       }
@@ -456,39 +574,39 @@ async function RunCommands(audioFile, result, messageid) {
       {
         const query = extractSearchQuery(result[0].text);
         if (!query) {
-          await readAndPrintSentences(["Please say what you want me to search for."], audioFile, messageid);
+          await readAndPrintSentences(["Please say what you want me to search for."], audioFile, messageid, { lang: detectedLang });
           break;
         }
         try {
           const maxResults = config.addons.AI.SearxNG?.maxResults || 5;
           const searchData = await SearxngGrabber(query, maxResults);
           if (searchData?.blocked) {
-            await respondSearchBlocked(audioFile, messageid);
+            await respondSearchBlocked(audioFile, messageid, detectedLang);
             break;
           }
           if (searchData?.error) {
-            await readAndPrintSentences([searchData.error], audioFile, messageid);
+            await readAndPrintSentences([searchData.error], audioFile, messageid, { lang: detectedLang });
             writeToLogFile(searchData.error);
             break;
           }
           const results = searchData?.results || [];
           if (results.length === 0) {
-            await readAndPrintSentences([`No results found for \"${query}\".`], audioFile, messageid);
+            await readAndPrintSentences([`No results found for \"${query}\".`], audioFile, messageid, { lang: detectedLang });
             break;
           }
           const prompt = buildSearchPrompt(query, results);
-          await respondWithGPT(prompt, audioFile, messageid, { stripLinks: true });
+          await respondWithGPT(prompt, audioFile, messageid, { stripLinks: true, lang: detectedLang });
         } catch (error) {
           const errorMessage = `Search failed: ${error.message}`;
           console.error(errorMessage);
-          await readAndPrintSentences([errorMessage], audioFile, messageid);
+          await readAndPrintSentences([errorMessage], audioFile, messageid, { lang: detectedLang });
           writeToLogFile(errorMessage);
         }
       }
       break;
     default:
       // Your default case
-      await respondWithGPT(result[0].text, audioFile, messageid);
+      await respondWithGPT(result[0].text, audioFile, messageid, { lang: detectedLang });
       break;
   }
 }

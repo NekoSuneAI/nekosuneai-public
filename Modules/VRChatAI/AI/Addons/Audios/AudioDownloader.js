@@ -277,6 +277,30 @@ async function convertToPcmWav(inputPath) {
   }
 }
 
+function waitForFileReady(filePath, minSize = 44, timeoutMs = 5000) {
+  const fs = require("fs");
+  const start = Date.now();
+  let lastSize = -1;
+  return new Promise(resolve => {
+    const tick = () => {
+      try {
+        if (fs.existsSync(filePath)) {
+          const size = fs.statSync(filePath).size;
+          if (size >= minSize && size === lastSize) {
+            return resolve(true);
+          }
+          lastSize = size;
+        }
+      } catch (_) {}
+      if (Date.now() - start >= timeoutMs) {
+        return resolve(false);
+      }
+      setTimeout(tick, 100);
+    };
+    tick();
+  });
+}
+
 function playAudioTTS(audioPath, options = {}) {
   const fs = require("fs");
   const path = require("path");
@@ -288,33 +312,39 @@ function playAudioTTS(audioPath, options = {}) {
   }
   const allowPcmRetry = options.allowPcmRetry !== false;
 
+  // Ensure any previous TTS playback is fully stopped
+  if (currentSpeakersound && currentAudioLabel === "tts") {
+    try {
+      currentSpeakersound.end();
+      currentSpeakersound.close();
+    } catch (_) {}
+    currentSpeakersound = null;
+    currentAudioLabel = null;
+    clearActiveStreams();
+  }
+
   stopWaitAudio();
 
   const resolvedPath = path.resolve(audioPath);
   console.log(`[Audio] TTS start: ${resolvedPath}`);
   let playbackPath = resolvedPath;
   let cleanupPath = null;
-  try {
-    if (!fs.existsSync(resolvedPath)) {
-      console.warn(`[Audio] TTS file missing: ${resolvedPath}`);
-      return Promise.resolve();
-    }
-    const size = fs.statSync(resolvedPath).size;
-    if (size < 44) {
-      console.warn(`[Audio] TTS file too small to play: ${resolvedPath}`);
-      return Promise.resolve();
-    }
-  } catch (err) {
-    console.warn("[Audio] TTS file check failed:", err.message || err);
-    return Promise.resolve();
-  }
 
-  const fileStream = fs.createReadStream(playbackPath);
-  const reader = new wav.Reader();
-  currentFileStream = fileStream;
-  currentReader = reader;
+  return waitForFileReady(resolvedPath).then(ready => {
+    if (!ready) {
+      console.warn(`[Audio] TTS file not ready: ${resolvedPath}`);
+      return;
+    }
+    let fileSize = null;
+    try {
+      fileSize = fs.statSync(resolvedPath).size;
+    } catch (_) {}
+    const fileStream = fs.createReadStream(playbackPath);
+    const reader = new wav.Reader();
+    currentFileStream = fileStream;
+    currentReader = reader;
 
-  return new Promise(resolve => {
+    return new Promise(resolve => {
     let resolved = false;
     const done = () => {
       if (resolved) return;
@@ -360,8 +390,10 @@ function playAudioTTS(audioPath, options = {}) {
       done();
     }, 5 * 60 * 1000);
 
+    let speakerCreated = false;
+    let safetyTimer = null;
     // This will be fired when the WAV header is parsed
-    reader.on("format", function (format) {
+    reader.once("format", function (format) {
       clearTimeout(startupWatchdog);
       console.log("[Audio] TTS format:", JSON.stringify({
         audioFormat: format.audioFormat,
@@ -411,6 +443,7 @@ function playAudioTTS(audioPath, options = {}) {
         }));
       }
       const speaker = new SpeakerCtor(outFormat);
+      speakerCreated = true;
       currentSpeakersound = speaker;
       currentAudioLabel = "tts";
       audioStream.pipe(speaker);
@@ -426,14 +459,26 @@ function playAudioTTS(audioPath, options = {}) {
             fs.unlinkSync(cleanupPath);
           } catch (err) {}
         }
+        if (safetyTimer) {
+          clearTimeout(safetyTimer);
+          safetyTimer = null;
+        }
         done();
       };
+      if (fileSize && format.sampleRate && format.channels && format.bitDepth) {
+        const bytesPerSecond = format.sampleRate * format.channels * (format.bitDepth / 8);
+        const dataBytes = Math.max(0, fileSize - 44);
+        const expectedMs = Math.ceil((dataBytes / bytesPerSecond) * 1000);
+        safetyTimer = setTimeout(() => {
+          console.warn("[Audio] TTS safety timeout reached; forcing finish.");
+          finish();
+        }, expectedMs + 2000);
+      }
       speaker.on("close", finish);
       speaker.on("finish", finish);
       speaker.on("error", finish);
     });
 
-    reader.on("end", done);
     reader.on("error", err => {
       console.warn("[Audio] TTS reader error:", err?.message || err);
       done();
@@ -442,7 +487,13 @@ function playAudioTTS(audioPath, options = {}) {
       console.warn("[Audio] TTS file error:", err?.message || err);
       done();
     });
+    reader.on("end", () => {
+      if (!speakerCreated) {
+        done();
+      }
+    });
     fileStream.pipe(reader);
+  });
   });
 }
 
