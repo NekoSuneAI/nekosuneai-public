@@ -62,6 +62,42 @@ echo.
 REM --- Step 3: Dependencies ---
 echo [4/5] Installing dependencies...
 
+REM --- Optional: set npm config for node-gyp if missing ---
+where npm >nul 2>&1
+if errorlevel 1 (
+  REM npm not available, skip config
+) else (
+  for /f "usebackq delims=" %%V in (`npm config get msvs_version`) do set "MSVS_VER=%%V"
+  if /i "%MSVS_VER%"=="undefined" (
+    echo   Setting npm config: msvs_version=2022
+    call npm config set msvs_version=2022 --location=global
+  )
+
+  for /f "usebackq delims=" %%P in (`npm config get python`) do set "NPM_PY=%%P"
+  if /i "%NPM_PY%"=="undefined" (
+    set "PYTHON_EXE="
+    if exist "%USERPROFILE%\.pyenv\pyenv-win\versions\3.10.11\python.exe" (
+      set "PYTHON_EXE=%USERPROFILE%\.pyenv\pyenv-win\versions\3.10.11\python.exe"
+    ) else (
+      where pyenv >nul 2>&1
+      if not errorlevel 1 (
+        for /f "usebackq delims=" %%X in (`pyenv which python`) do set "PYTHON_EXE=%%X"
+      ) else (
+        for /f "usebackq delims=" %%X in (`where python`) do (
+          if not defined PYTHON_EXE set "PYTHON_EXE=%%X"
+        )
+      )
+    )
+
+    if defined PYTHON_EXE (
+      echo   Setting npm config: python="%PYTHON_EXE%"
+      call npm config set python="%PYTHON_EXE%" --location=global
+    ) else (
+      echo   WARN: Python not found to set npm config.
+    )
+  )
+)
+
 if exist "%ROOT%node_modules" (
   echo   node_modules present. (Run "npm ci" for a clean install if needed.)
 ) else (
