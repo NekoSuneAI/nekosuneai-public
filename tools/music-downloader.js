@@ -32,6 +32,16 @@ function normalizeBaseUrl(baseUrl) {
   return (baseUrl || "").replace(/\/+$/, "");
 }
 
+function makeSpinner() {
+  const frames = ["-", "\\", "|", "/"];
+  let i = 0;
+  return () => {
+    const frame = frames[i % frames.length];
+    i += 1;
+    return frame;
+  };
+}
+
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -77,6 +87,7 @@ async function createJob(baseUrl, link, uploadDest, apiKey) {
 
 async function pollJob(baseUrl, jobId, maxPolls, pollIntervalMs, apiKey) {
   const url = `${baseUrl}/api/jobs/${jobId}`;
+  const spin = makeSpinner();
   for (let i = 0; i < maxPolls; i++) {
     const res = await axios.get(url, { headers: buildHeaders(apiKey) });
     const data = res.data || {};
@@ -84,9 +95,8 @@ async function pollJob(baseUrl, jobId, maxPolls, pollIntervalMs, apiKey) {
     const dl = data.download?.label || "";
     const cv = data.convert?.label || "";
     const up = data.upload?.label || "";
-    process.stdout.write(
-      `\r[${status}] ${dl} ${cv} ${up}`.trim()
-    );
+    const line = `[${spin()}] ${status} | ${dl} | ${cv} | ${up}`.replace(/\s+\|\s+$/g, "");
+    process.stdout.write(`\r${line}`);
     if (status === "done" && data.url) {
       process.stdout.write("\n");
       return data;

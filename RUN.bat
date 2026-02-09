@@ -59,6 +59,20 @@ REM Add SoX to PATH for current session
 set "PATH=%SOX_DIR%;%PATH%"
 echo.
 
+REM --- Step 2.5: Ensure FFmpeg (auto-download if missing) ---
+echo [3.5/5] Ensuring FFmpeg...
+if exist "%ROOT%tools\ensure-ffmpeg.js" (
+  where node >nul 2>&1
+  if errorlevel 1 (
+    echo   WARN: node not available. Skipping FFmpeg check.
+  ) else (
+    call node "%ROOT%tools\ensure-ffmpeg.js"
+  )
+) else (
+  echo   WARN: tools\\ensure-ffmpeg.js not found. Skipping FFmpeg check.
+)
+echo.
+
 REM --- Step 3: Dependencies ---
 echo [4/5] Installing dependencies...
 
