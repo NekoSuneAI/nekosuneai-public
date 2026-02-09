@@ -6,7 +6,7 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
-tools/*
+tools/**/*
 !tools/music-downloader.js
 node_modules.zip
 
@@ -22,7 +22,6 @@ python-portable/
 piper/
 node_modulesttt/
 model/
-tools/
 config/memory.sqlite
 tts_configs/
 Modules/AUTOAI/VOICEModules/Speakbup.js
