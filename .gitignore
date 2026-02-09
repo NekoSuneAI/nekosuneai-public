@@ -6,7 +6,8 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
-tools/
+tools/*
+!tools/music-downloader.js
 node_modules.zip
 
 # IGNORE OTHER STUFF
