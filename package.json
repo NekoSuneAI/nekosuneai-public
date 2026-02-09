@@ -39,7 +39,6 @@
     "node_characterai": "^1.2.7",
     "node-2fa": "^2.0.3",
     "node-fetch": "^2.7.0",
-    "node-global-key-listener": "^0.3.0",
     "node-osc": "^11.2.2",
     "node-record-lpcm16": "^1.0.1",
     "openai": "^6.16.0",

@@ -5,7 +5,7 @@ import path from "path";
 import axios from "axios";
 import FormData from "form-data";
 import { exec } from "child_process";
-import { GlobalKeyboardListener } from "node-global-key-listener";
+import readline from "readline";
 import { addToQueue } from "../index.js";
 const sendMSGOSC = () => {};
 const sendMSGOSCImmediate = () => {};
@@ -187,17 +187,23 @@ async function transcribeWithWhisper(audioFile) {
   }
 }
 
-// Existing keyboard toggle
-const keyboardListener = new GlobalKeyboardListener();
-keyboardListener.addListener((e) => {
-  if (e.name === "F9" && !e.state) {
-    if (micOn) {
-      stopMic();
-    } else {
-      startMic();
+// Console-only keyboard toggle (requires focused console)
+if (process.stdin.isTTY) {
+  readline.emitKeypressEvents(process.stdin);
+  process.stdin.setRawMode(true);
+  process.stdin.on("keypress", (str, key) => {
+    if (key && key.ctrl && key.name === "c") {
+      process.exit();
     }
-  }
-});
+    if (key && key.name === "v") {
+      if (micOn) {
+        stopMic();
+      } else {
+        startMic();
+      }
+    }
+  });
+}
 
 // === Helpers: download models/binaries when missing ===
 async function downloadFile(url, targetPath) {
