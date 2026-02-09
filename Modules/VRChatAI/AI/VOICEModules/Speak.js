@@ -88,18 +88,20 @@ async function runTTSRVC(text, voicegender, voice, TTS_DIR) {
     // -----------------------------
     try {
     const baseAudioBuffer = await fsn.promises.readFile(rawFile);
-    const base64Audio = fsn.readFileSync(rawFile).toString("base64");
-    
-    // -----------------------------------
-    // 3. Send to Gradio RVC server
-    // -----------------------------------
-    const { Client } = await import("@gradio/client");
-    const client = await Client.connect(`${config.addons.AI.RVCAPINODE}`);
-
-    // Convert buffer → Blob for Gradio API
+    const fetchImpl = requireFetch();
     const audioBlob = new Blob([baseAudioBuffer], { type: "audio/wav" });
 
-    const result = await client.predict("/process_audio", {
+    const { Client } = await import("@gradio/client");
+
+    let finalBuffer = null;
+
+    // -----------------------------------
+    // 3A. Try primary Gradio RVC server
+    // -----------------------------------
+    try {
+      const client = await Client.connect(`${config.addons.AI.RVCAPINODE}`);
+
+      const result = await client.predict("/process_audio", {
         audio_path: audioBlob,
         model_name: rvcModel,
         pitch: pitch,
@@ -109,25 +111,74 @@ async function runTTSRVC(text, voicegender, voice, TTS_DIR) {
         rms_mix_rate: 1,
         protect: 0.33,
         device: "cuda:0",
-    });
+      });
 
-    // Gradio output = result.data[0] = FileData
-    const fileUrl = result.data[0].url;
-    console.log("Gradio file URL:", fileUrl);
+      const fileUrl = result?.data?.[0]?.url;
+      if (!fileUrl) {
+        throw new Error("Primary RVC response missing file URL");
+      }
+      console.log("Gradio file URL (primary):", fileUrl);
 
-    // -----------------------------------
-    // 4. Download final WAV file
-    // -----------------------------------
-    const fetchImpl = requireFetch();
-    const res = await fetchImpl(fileUrl);
-    if (!res.ok) {
-      throw new Error(`Failed to download TTS file: ${res.status}`);
+      const res = await fetchImpl(fileUrl);
+      if (!res.ok) {
+        throw new Error(`Failed to download TTS file: ${res.status}`);
+      }
+      finalBuffer = Buffer.from(await res.arrayBuffer());
+    } catch (primaryErr) {
+      console.warn(`[RVC] Primary failed, trying fallback: ${primaryErr.message}`);
+
+      // -----------------------------------
+      // 3B. Fallback: r3gm/rvc_zero
+      // -----------------------------------
+      const modelBaseUrl = `https://huggingface.co/nekosunebot/rvc_voices/resolve/main/${rvcModel}`;
+      const [pthResp, indexResp] = await Promise.all([
+        fetchImpl(`${modelBaseUrl}/model.pth?download=true`),
+        fetchImpl(`${modelBaseUrl}/model.index?download=true`)
+      ]);
+
+      if (!pthResp.ok) {
+        throw new Error(`Failed to download model.pth: ${pthResp.status}`);
+      }
+      if (!indexResp.ok) {
+        throw new Error(`Failed to download model.index: ${indexResp.status}`);
+      }
+
+      const pthBlob = await pthResp.blob();
+      const indexBlob = await indexResp.blob();
+
+      const client = await Client.connect("r3gm/rvc_zero");
+      const result = await client.predict("/run", {
+        audio_files: [audioBlob],
+        file_m: pthBlob,
+        file_index: indexBlob,
+        pitch_alg: "rmvpe+",
+        pitch_lvl: pitch,
+        index_inf: 0.75,
+        r_m_f: 3,
+        e_r: 0.25,
+        c_b_p: 0.5,
+        active_noise_reduce: false,
+        audio_effects: false,
+        type_output: "wav",
+        steps: 1,
+      });
+
+      const fileUrl = result?.data?.[0]?.url;
+      if (!fileUrl) {
+        throw new Error("Fallback RVC response missing file URL");
+      }
+      console.log("Gradio file URL (fallback):", fileUrl);
+
+      const res = await fetchImpl(fileUrl);
+      if (!res.ok) {
+        throw new Error(`Failed to download TTS file: ${res.status}`);
+      }
+      finalBuffer = Buffer.from(await res.arrayBuffer());
     }
-    const finalBuffer = Buffer.from(await res.arrayBuffer());
 
     const finalFile = path.join(
-        TTS_DIR,
-        `${Date.now()}-${voice}-FINAL.wav`
+      TTS_DIR,
+      `${Date.now()}-${voice}-FINAL.wav`
     );
 
     await fsn.promises.writeFile(finalFile, finalBuffer);
