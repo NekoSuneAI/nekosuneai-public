@@ -53,17 +53,8 @@ function loadVoiceIndex() {
 }
 
 function pickPiperVoiceForLang(lang) {
-  const index = loadVoiceIndex();
-  const fallback = config.addons.AI.voice || "en_US-amy-medium";
-  if (!lang) return fallback;
-  if (lang === "ja" || lang === "zh") {
-    // Use fallback English voice to avoid unsupported phoneme types on some Piper builds.
-    return fallback;
-  }
-  const list = index[lang];
-  if (Array.isArray(list) && list.length) {
-    return list[0];
-  }
+  const fallback = config.addons.AI.voice || "en_US-lessac-medium";
+  if (!lang || lang === "en") return fallback;
   return fallback;
 }
 
