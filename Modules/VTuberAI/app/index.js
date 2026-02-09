@@ -608,30 +608,83 @@ const GPTQueue = (() => {
     // 2) Send to RVC
     const baseAudioBuffer = await fsp.readFile(rawFile);
     const { Client } = await import("@gradio/client");
-    const client = await Client.connect(RVC_API);
-
     const audioBlob = new Blob([baseAudioBuffer], { type: "audio/wav" });
-    const result = await client.predict("/process_audio", {
-      audio_path: audioBlob,
-      model_name: rvcModel,
-      pitch,
-      f0method: "harvest",
-      index_rate: 0.5,
-      filter_radius: 3,
-      rms_mix_rate: 1,
-      protect: 0.33,
-      device: "cuda:0",
-    });
 
-    const fileUrl = result?.data?.[0]?.url;
-    if (!fileUrl) {
-      throw new Error("No file URL returned from RVC server");
+    let finalBuffer = null;
+
+    try {
+      const client = await Client.connect(RVC_API);
+      const result = await client.predict("/process_audio", {
+        audio_path: audioBlob,
+        model_name: rvcModel,
+        pitch,
+        f0method: "harvest",
+        index_rate: 0.5,
+        filter_radius: 3,
+        rms_mix_rate: 1,
+        protect: 0.33,
+        device: "cuda:0",
+      });
+
+      const fileUrl = result?.data?.[0]?.url;
+      if (!fileUrl) {
+        throw new Error("No file URL returned from RVC server");
+      }
+
+      const res = await fetchWithFallback(fileUrl);
+      if (!res.ok) {
+        throw new Error(`Failed to download TTS file: ${res.status}`);
+      }
+      const arrayBuf = await res.arrayBuffer();
+      finalBuffer = Buffer.from(arrayBuf);
+    } catch (primaryErr) {
+      console.warn(`[RVC] Primary failed, trying fallback: ${primaryErr.message}`);
+
+      const modelBaseUrl = `https://huggingface.co/nekosunebot/rvc_voices/resolve/main/${rvcModel}`;
+      const [pthResp, indexResp] = await Promise.all([
+        fetchWithFallback(`${modelBaseUrl}/model.pth?download=true`),
+        fetchWithFallback(`${modelBaseUrl}/model.index?download=true`)
+      ]);
+
+      if (!pthResp.ok) {
+        throw new Error(`Failed to download model.pth: ${pthResp.status}`);
+      }
+      if (!indexResp.ok) {
+        throw new Error(`Failed to download model.index: ${indexResp.status}`);
+      }
+
+      const pthBlob = await pthResp.blob();
+      const indexBlob = await indexResp.blob();
+
+      const client = await Client.connect("r3gm/rvc_zero");
+      const result = await client.predict("/run", {
+        audio_files: [audioBlob],
+        file_m: pthBlob,
+        file_index: indexBlob,
+        pitch_alg: "rmvpe+",
+        pitch_lvl: pitch,
+        index_inf: 0.75,
+        r_m_f: 3,
+        e_r: 0.25,
+        c_b_p: 0.5,
+        active_noise_reduce: false,
+        audio_effects: false,
+        type_output: "wav",
+        steps: 1,
+      });
+
+      const fileUrl = result?.data?.[0]?.url;
+      if (!fileUrl) {
+        throw new Error("No file URL returned from fallback RVC server");
+      }
+
+      const res = await fetchWithFallback(fileUrl);
+      if (!res.ok) {
+        throw new Error(`Failed to download TTS file: ${res.status}`);
+      }
+      const arrayBuf = await res.arrayBuffer();
+      finalBuffer = Buffer.from(arrayBuf);
     }
-
-    // 3) Download final wav
-    const res = await fetchWithFallback(fileUrl);
-    const arrayBuf = await res.arrayBuffer();
-    const finalBuffer = Buffer.from(arrayBuf);
 
     const finalFile = join(TTS_DIR, `${Date.now()}-${voice}-FINAL.wav`);
     await fsp.writeFile(finalFile, finalBuffer);
