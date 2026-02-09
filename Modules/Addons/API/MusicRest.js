@@ -2,14 +2,7 @@ const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 const ffmpeg = require("fluent-ffmpeg");
-try {
-  const ffmpegPath = require("ffmpeg-static");
-  if (ffmpegPath) {
-    ffmpeg.setFfmpegPath(ffmpegPath);
-  }
-} catch (err) {
-  console.warn("[Music] ffmpeg-static not available:", err?.message || err);
-}
+const { ensureFfmpegForFluent } = require("./FFmpeg");
 const { config } = require("../../config");
 const { writeToLogFileMusic } = require("../../VRChatAI/AI/VOICEModules/LogFiles");
 const { ensureDir, getMusicDir } = require("../DataPaths");
@@ -90,6 +83,7 @@ async function downloadFile(url, destPath) {
 }
 
 async function convertMp3ToWav(mp3Path, wavPath) {
+  await ensureFfmpegForFluent(ffmpeg);
   await new Promise((resolve, reject) => {
     ffmpeg()
       .input(mp3Path)

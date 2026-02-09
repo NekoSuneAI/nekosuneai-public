@@ -7,14 +7,7 @@ const path = require("path");
 
 const { config } = require("../../../../config");
 const ffmpeg = require("fluent-ffmpeg");
-try {
-  const ffmpegPath = require("ffmpeg-static");
-  if (ffmpegPath) {
-    ffmpeg.setFfmpegPath(ffmpegPath);
-  }
-} catch (err) {
-  console.warn("[Audio] ffmpeg-static not available:", err?.message || err);
-}
+const { ensureFfmpegForFluent } = require("../../../../Addons/API/FFmpeg");
 const wav = require("wav");
 
 async function DownloadFile(source, mp3Url, filepath, filename) {
@@ -49,8 +42,9 @@ async function DownloadFile(source, mp3Url, filepath, filename) {
         const mp3FileWriteStream = fs.createWriteStream(mp3FilePath);
         mp3Stream.pipe(mp3FileWriteStream);
 
-        mp3FileWriteStream.on("finish", () => {
+        mp3FileWriteStream.on("finish", async () => {
           // Conversion
+          await ensureFfmpegForFluent(ffmpeg);
           ffmpeg()
             .input(mp3FilePath)
             .audioCodec("pcm_s16le")
@@ -265,6 +259,7 @@ async function convertToPcmWav(inputPath) {
     if (fs.existsSync(outPath)) {
       return outPath;
     }
+    await ensureFfmpegForFluent(ffmpeg);
     await new Promise((resolve, reject) => {
       ffmpeg()
         .input(inputPath)
