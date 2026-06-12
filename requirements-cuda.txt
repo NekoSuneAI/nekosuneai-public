@@ -1,0 +1,18 @@
+# OPTIONAL GPU acceleration for faster-whisper on NVIDIA cards (CUDA 12).
+#
+# Install with:   pip install -r requirements-cuda.txt
+#
+# These ship the CUDA 12 runtime libraries (cuBLAS, cuDNN 9, CUDA runtime) that
+# ctranslate2 / faster-whisper load at runtime. Without them you get errors like
+# "Library cublas64_12.dll is not found or cannot be loaded".
+#
+# Versions are matched to ctranslate2 4.5+ (CUDA 12 + cuDNN 9). NekoSuneAI adds
+# these packages' bin folders to the DLL search path automatically on Windows.
+#
+# Requires a recent NVIDIA driver. Works on Maxwell+ GPUs (e.g. GTX 980 Ti).
+# If the GPU can't be used it falls back to CPU automatically.
+
+nvidia-cublas-cu12>=12.4
+nvidia-cudnn-cu12>=9.0
+nvidia-cuda-runtime-cu12>=12.4
+nvidia-cuda-nvrtc-cu12>=12.4

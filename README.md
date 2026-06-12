@@ -120,10 +120,28 @@ audible to others:
 
 Now the synthesized voice flows into VRChat as if it were your mic.
 
+## GPU acceleration (NVIDIA)
+faster-whisper can run on an NVIDIA GPU (Maxwell or newer, e.g. **GTX 980 Ti**+).
+It needs the CUDA 12 runtime libraries:
+
+```bash
+pip install -r requirements-cuda.txt
+```
+
+Then set `stt.device: "auto"` (or `"cuda"`). That's it — NekoSuneAI adds the
+CUDA DLL folders to the search path for you. If the GPU can't be used it falls
+back to CPU automatically.
+
+- Without these libs you'd see `Library cublas64_12.dll is not found or cannot
+  be loaded` — that just means the CUDA runtime isn't installed.
+- Older cards (Maxwell/Pascal) have no fast FP16, so the engine uses `float32`
+  on GPU automatically. That's expected and still much faster than CPU.
+
 ## Potato tips
 - For the lightest STT, use `stt.provider: "vosk"` with
   `vosk-model-small-en-us-0.15` (~40 MB, instant, offline).
 - Or `stt.provider: "faster-whisper"` with `stt.model: "tiny"` + `int8`.
+- No NVIDIA GPU? Leave `stt.device: "auto"` — it just uses the CPU.
 - Use a 1.5B-3B LLM in Ollama (`qwen2.5:1.5b-instruct`, `llama3.2:3b`).
 - Keep `tts.provider: "piper"` (XTTS will crawl on CPU).
 - Lower `audio.silence_hang_seconds` for snappier turn-taking.

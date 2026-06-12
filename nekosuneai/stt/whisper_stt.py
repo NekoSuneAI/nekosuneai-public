@@ -37,14 +37,21 @@ def _register_cuda_dll_dirs() -> None:
         import nvidia  # provided by the nvidia-*-cu12 packages
     except Exception:
         return
+    found = []
     for base in getattr(nvidia, "__path__", []):
-        for sub in ("cublas", "cudnn", "cuda_runtime", "cuda_nvrtc", "cufft"):
+        for sub in ("cuda_runtime", "cublas", "cudnn", "cuda_nvrtc", "cufft"):
             d = os.path.join(base, sub, "bin")
             if os.path.isdir(d):
+                found.append(d)
                 try:
                     os.add_dll_directory(d)
                 except Exception:
                     pass
+    # ctranslate2 loads cublas/cudnn via the OS loader, which also searches
+    # PATH for an explicitly-loaded DLL's *dependencies* (e.g. cublas needs
+    # cudart). Prepend our dirs so those dependencies resolve too.
+    if found:
+        os.environ["PATH"] = os.pathsep.join(found) + os.pathsep + os.environ.get("PATH", "")
 
 
 # Register before ctranslate2 / faster-whisper is ever imported below.
