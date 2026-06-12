@@ -1,0 +1,32 @@
+# NekoSuneAI (Python) - requirements
+# Default "potato laptop" stack:
+#   STT  = faster-whisper
+#   TTS  = piper (lightweight, local)  + gTTS / XTTS options
+#   LLM  = any OpenAI-compatible endpoint (Ollama, LM Studio, remote)
+#   OSC  = python-osc (VRChat chatbox + avatar params)
+#   GUI  = flask (python -m nekosuneai.gui)
+
+# --- Core (always needed) -----------------------------------------------------
+faster-whisper>=1.0.0
+vosk>=0.3.45        # alternative ultra-light offline STT engine
+sounddevice>=0.4.6
+soundfile>=0.12.1
+numpy>=1.24
+python-osc>=1.8.3
+requests>=2.31
+flask>=3.0
+tzdata>=2024.1      # IANA timezone DB for time / new-year skills (needed on Windows)
+
+# --- TTS: Piper (default voice, local & light) --------------------------------
+piper-tts>=1.2.0
+
+# --- TTS: gTTS online fallback voice (+ mp3 decoding for playback) ------------
+gTTS>=2.5.0
+miniaudio>=1.59
+
+# --- Music queue ("play <song>") - also needs ffmpeg on PATH ------------------
+yt-dlp>=2024.1.0
+
+# --- TTS: XTTS voice cloning (HEAVY - pulls in PyTorch) -----------------------
+# Kept separate because it is large and not needed on a potato. Install with:
+#   pip install -r requirements-xtts.txt

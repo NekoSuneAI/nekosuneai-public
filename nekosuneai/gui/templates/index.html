@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NekoSuneAI · Setup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            ink: { 900: '#070b09', 800: '#0b110d', 700: '#101813', 600: '#16221b' },
+            neon: { 300: '#6ee7a8', 400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857' },
+          },
+          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+          boxShadow: { glow: '0 0 0 1px rgba(16,185,129,.25), 0 8px 40px -8px rgba(16,185,129,.35)' },
+        },
+      },
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body { background:
+      radial-gradient(1200px 600px at 110% -10%, rgba(16,185,129,.18), transparent 60%),
+      radial-gradient(900px 500px at -10% 0%, rgba(5,150,105,.12), transparent 55%),
+      #070b09; }
+    .glass { background: rgba(16,34,27,.55); backdrop-filter: blur(14px); border: 1px solid rgba(110,231,168,.12); }
+    .field { background: rgba(7,11,9,.6); border:1px solid rgba(110,231,168,.14); }
+    .field:focus { outline:none; border-color:#34d399; box-shadow:0 0 0 3px rgba(52,211,153,.18); }
+    .navbtn.active { background: linear-gradient(90deg, rgba(16,185,129,.22), rgba(16,185,129,.05)); color:#6ee7a8; border-color: rgba(110,231,168,.35); }
+    .switch { transition: all .2s ease; }
+    ::-webkit-scrollbar { width:10px; height:10px; } ::-webkit-scrollbar-thumb { background:rgba(16,185,129,.35); border-radius:10px; }
+    @keyframes pulseGlow { 0%,100%{opacity:.6} 50%{opacity:1} }
+    .live-dot { animation: pulseGlow 1.6s infinite; }
+  </style>
+</head>
+<body class="min-h-screen text-emerald-50 font-sans antialiased">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-30 border-b border-emerald-400/10 bg-ink-900/70 backdrop-blur-xl">
+    <div class="mx-auto max-w-6xl px-5 py-3.5 flex items-center gap-4">
+      <div class="h-10 w-10 rounded-xl grid place-items-center bg-gradient-to-br from-neon-400 to-neon-700 shadow-glow text-ink-900 font-extrabold text-lg">N</div>
+      <div class="leading-tight">
+        <h1 class="text-lg font-extrabold tracking-tight">NekoSune<span class="text-neon-400">AI</span></h1>
+        <p class="text-[11px] text-emerald-300/60 -mt-0.5">VRChat voice AI · potato edition</p>
+      </div>
+      <div class="ml-auto flex items-center gap-3">
+        <span id="statusPill" class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold bg-ink-700 border border-emerald-400/15 text-emerald-300/70">
+          <span id="statusDot" class="h-2 w-2 rounded-full bg-zinc-500"></span><span id="statusText">checking…</span>
+        </span>
+        <button id="startBtn" class="rounded-lg px-3.5 py-2 text-sm font-semibold bg-neon-500 hover:bg-neon-400 text-ink-900 transition shadow-glow">▶ Start</button>
+        <button id="stopBtn" class="rounded-lg px-3.5 py-2 text-sm font-semibold bg-ink-700 hover:bg-ink-600 border border-emerald-400/15 transition">■ Stop</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-5 py-7 grid grid-cols-12 gap-6">
+    <!-- Sidebar -->
+    <nav class="col-span-12 md:col-span-3 space-y-1.5 md:sticky md:top-24 self-start">
+      <button data-tab="audio"   class="navbtn active w-full text-left rounded-xl px-4 py-2.5 text-sm font-medium border border-transparent hover:border-emerald-400/20 transition">🎧 Audio &amp; Devices</button>
+      <button data-tab="speech"  class="navbtn w-full text-left rounded-xl px-4 py-2.5 text-sm font-medium border border-transparent hover:border-emerald-400/20 transition">🗣️ Speech (STT)</button>
+      <button data-tab="voice"   class="navbtn w-full text-left rounded-xl px-4 py-2.5 text-sm font-medium border border-transparent hover:border-emerald-400/20 transition">🔊 Voice (TTS)</button>
+      <button data-tab="brain"   class="navbtn w-full text-left rounded-xl px-4 py-2.5 text-sm font-medium border border-transparent hover:border-emerald-400/20 transition">🧠 Brain (LLM)</button>
+      <button data-tab="skills"  class="navbtn w-full text-left rounded-xl px-4 py-2.5 text-sm font-medium border border-transparent hover:border-emerald-400/20 transition">✨ Skills</button>
+      <button data-tab="vrchat"  class="navbtn w-full text-left rounded-xl px-4 py-2.5 text-sm font-medium border border-transparent hover:border-emerald-400/20 transition">🌐 VRChat &amp; Chatbox</button>
+      <button data-tab="advanced" class="navbtn w-full text-left rounded-xl px-4 py-2.5 text-sm font-medium border border-transparent hover:border-emerald-400/20 transition">⚙️ Advanced JSON</button>
+    </nav>
+
+    <!-- Panels -->
+    <section class="col-span-12 md:col-span-9 space-y-6">
+
+      <!-- AUDIO -->
+      <div data-panel="audio" class="glass rounded-2xl p-6 shadow-xl">
+        <h2 class="text-base font-bold mb-1">🎧 Audio &amp; Devices</h2>
+        <p class="text-xs text-emerald-300/50 mb-5">Pick your mic, and route output to a virtual cable (VB-CABLE) so VRChat hears the bot.</p>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <label class="block"><span class="lbl">Input device (microphone)</span>
+            <select data-path="audio.input_device" data-kind="input" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></select></label>
+          <label class="block"><span class="lbl">Output device (→ VRChat mic)</span>
+            <select data-path="audio.output_device" data-kind="output" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></select></label>
+          <label class="block"><span class="lbl">Silence threshold</span>
+            <input data-path="audio.silence_threshold" type="number" step="0.001" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+          <label class="block"><span class="lbl">Silence hang (seconds)</span>
+            <input data-path="audio.silence_hang_seconds" type="number" step="0.1" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+          <label class="block"><span class="lbl">Wait-music volume</span>
+            <input data-path="audio.wait_sound_volume" type="number" step="0.05" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+          <label class="block"><span class="lbl">Wait-music folder</span>
+            <input data-path="audio.wait_sounds_dir" type="text" placeholder="data/wait_music" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+        </div>
+        <p class="text-[11px] text-emerald-300/40 mt-4">💡 Drop songs into <code class="text-neon-300">data/wait_music/</code> — they play randomly while the bot is thinking.</p>
+      </div>
+
+      <!-- SPEECH -->
+      <div data-panel="speech" class="hidden glass rounded-2xl p-6 shadow-xl">
+        <h2 class="text-base font-bold mb-1">🗣️ Speech to Text</h2>
+        <p class="text-xs text-emerald-300/50 mb-5"><b>Vosk</b> is ultra-light &amp; offline (~40 MB) — best for a potato. <b>faster-whisper</b> is more accurate.</p>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <label class="block"><span class="lbl">Engine</span>
+            <select id="sttProvider" data-path="stt.provider" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1">
+              <option value="faster-whisper">faster-whisper (accurate)</option>
+              <option value="vosk">Vosk (ultra-light)</option>
+            </select></label>
+          <label class="block"><span id="sttModelLbl" class="lbl">Model</span>
+            <select id="sttModel" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></select></label>
+        </div>
+        <div id="whisperOnly" class="grid sm:grid-cols-2 gap-4 mt-4">
+          <label class="block"><span class="lbl">Device</span>
+            <select data-path="stt.device" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1">
+              <option>auto</option><option>cpu</option><option>cuda</option>
+            </select></label>
+          <label class="block"><span class="lbl">Compute type</span>
+            <select data-path="stt.compute_type" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1">
+              <option>int8</option><option>int8_float16</option><option>float16</option><option>float32</option>
+            </select></label>
+          <label class="block"><span class="lbl">Language (blank = auto)</span>
+            <input data-path="stt.language" type="text" placeholder="auto" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+        </div>
+        <div class="mt-5 flex items-center gap-3">
+          <button id="sttDlBtn" class="rounded-lg px-4 py-2 text-sm font-semibold bg-ink-700 hover:bg-ink-600 border border-emerald-400/20 transition">⬇ Download model</button>
+          <span id="sttDlStatus" class="text-xs text-emerald-300/50"></span>
+        </div>
+      </div>
+
+      <!-- VOICE -->
+      <div data-panel="voice" class="hidden glass rounded-2xl p-6 shadow-xl">
+        <h2 class="text-base font-bold mb-1">🔊 Voice (Text to Speech)</h2>
+        <p class="text-xs text-emerald-300/50 mb-5">Piper is the light, local default. gTTS is online &amp; tiny. XTTS clones voices but is heavy.</p>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <label class="block"><span class="lbl">Provider</span>
+            <select id="ttsProvider" data-path="tts.provider" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1">
+              <option value="piper">Piper (local, light)</option>
+              <option value="gtts">gTTS (online, tiny)</option>
+              <option value="xtts">XTTS (clone, heavy)</option>
+            </select></label>
+          <label class="block"><span id="voiceLbl" class="lbl">Voice</span>
+            <select id="voiceSelect" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></select></label>
+        </div>
+        <div id="piperDl" class="mt-5 flex items-center gap-3">
+          <button data-dl="piper" class="dlbtn rounded-lg px-4 py-2 text-sm font-semibold bg-ink-700 hover:bg-ink-600 border border-emerald-400/20 transition">⬇ Download Piper voice</button>
+          <span data-dlstatus="piper" class="text-xs text-emerald-300/50"></span>
+        </div>
+        <p class="text-[11px] text-emerald-300/40 mt-4">Voices come from <span class="text-neon-300">rhasspy/piper-voices</span>. RVC voice conversion is on the roadmap (see TODO.md).</p>
+      </div>
+
+      <!-- BRAIN -->
+      <div data-panel="brain" class="hidden glass rounded-2xl p-6 shadow-xl">
+        <h2 class="text-base font-bold mb-1">🧠 Brain (LLM)</h2>
+        <p class="text-xs text-emerald-300/50 mb-5">Any OpenAI-compatible endpoint. Local Ollama keeps it offline &amp; free.</p>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <label class="block"><span class="lbl">Base URL</span>
+            <input data-path="llm.base_url" type="text" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+          <label class="block"><span class="lbl">Model</span>
+            <input data-path="llm.model" type="text" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+          <label class="block"><span class="lbl">API key</span>
+            <input data-path="llm.api_key" type="text" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+          <label class="block"><span class="lbl">Temperature</span>
+            <input data-path="llm.temperature" type="number" step="0.05" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+        </div>
+        <label class="block mt-4"><span class="lbl">System personality</span>
+          <textarea data-path="llm.system_message" rows="4" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></textarea></label>
+      </div>
+
+      <!-- SKILLS -->
+      <div data-panel="skills" class="hidden glass rounded-2xl p-6 shadow-xl">
+        <h2 class="text-base font-bold mb-1">✨ Skills</h2>
+        <p class="text-xs text-emerald-300/50 mb-5">Spoken commands: time, weather, jokes, wiki, search, music…</p>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <label class="block"><span class="lbl">Weather API key (OpenWeather)</span>
+            <input data-path="skills.weather.api_key" type="text" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+          <label class="block"><span class="lbl">Weather units</span>
+            <select data-path="skills.weather.units" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"><option value="metric">metric (°C)</option><option value="imperial">imperial (°F)</option></select></label>
+          <label class="block"><span class="lbl">SearxNG base URL</span>
+            <input data-path="skills.search.base_url" type="text" placeholder="https://searx.example" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+          <label class="block"><span class="lbl">Search max results</span>
+            <input data-path="skills.search.max_results" type="number" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+        </div>
+        <div class="mt-4 flex flex-wrap gap-5">
+          <label class="flex items-center gap-2 text-sm"><input data-path="skills.music.enabled" type="checkbox" class="accent-neon-500 h-4 w-4"> Music queue</label>
+          <label class="flex items-center gap-2 text-sm"><input data-path="skills.jokes.allow_explicit" type="checkbox" class="accent-neon-500 h-4 w-4"> Allow explicit jokes</label>
+          <label class="flex items-center gap-2 text-sm"><input data-path="moderation.enabled" type="checkbox" class="accent-neon-500 h-4 w-4"> Bad-word filter</label>
+        </div>
+      </div>
+
+      <!-- VRCHAT -->
+      <div data-panel="vrchat" class="hidden glass rounded-2xl p-6 shadow-xl">
+        <h2 class="text-base font-bold mb-1">🌐 VRChat &amp; Chatbox</h2>
+        <p class="text-xs text-emerald-300/50 mb-5">OSC ports (VRChat defaults are 9000 / 9001) and chatbox behaviour.</p>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <label class="block"><span class="lbl">OSC target address</span>
+            <input data-path="vrchat.osc_target_address" type="text" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+          <label class="block"><span class="lbl">OSC send port</span>
+            <input data-path="vrchat.osc_target_port" type="number" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+          <label class="block"><span class="lbl">OSC read port</span>
+            <input data-path="vrchat.osc_read_port" type="number" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+          <label class="block"><span class="lbl">Chatbox max chars</span>
+            <input data-path="chatbox.max_chars" type="number" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+          <label class="block"><span class="lbl">"Please wait up to" estimate (seconds)</span>
+            <input data-path="chatbox.wait_seconds" type="number" placeholder="120" class="field w-full rounded-lg px-3 py-2.5 text-sm mt-1"></label>
+        </div>
+        <div class="mt-4 flex flex-wrap gap-5">
+          <label class="flex items-center gap-2 text-sm"><input data-path="chatbox.show_thinking" type="checkbox" class="accent-neon-500 h-4 w-4"> Show "thinking…" bar</label>
+          <label class="flex items-center gap-2 text-sm"><input data-path="chatbox.thinking_play_wait_sounds" type="checkbox" class="accent-neon-500 h-4 w-4"> Play wait music</label>
+        </div>
+      </div>
+
+      <!-- ADVANCED -->
+      <div data-panel="advanced" class="hidden glass rounded-2xl p-6 shadow-xl">
+        <h2 class="text-base font-bold mb-1">⚙️ Advanced JSON</h2>
+        <p class="text-xs text-emerald-300/50 mb-4">Full raw config. Edits here override the form when you press “Apply JSON”.</p>
+        <textarea id="rawJson" rows="20" spellcheck="false" class="field w-full rounded-lg px-3 py-3 text-xs font-mono"></textarea>
+        <button id="applyJson" class="mt-3 rounded-lg px-4 py-2 text-sm font-semibold bg-ink-700 hover:bg-ink-600 border border-emerald-400/20 transition">Apply JSON → form</button>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Save bar -->
+  <div class="sticky bottom-0 z-30 border-t border-emerald-400/10 bg-ink-900/80 backdrop-blur-xl">
+    <div class="mx-auto max-w-6xl px-5 py-3 flex items-center gap-3">
+      <span id="cfgPath" class="text-[11px] text-emerald-300/40 truncate"></span>
+      <div class="ml-auto flex items-center gap-3">
+        <span id="toast" class="text-sm font-medium opacity-0 transition"></span>
+        <button id="reloadBtn" class="rounded-lg px-4 py-2 text-sm font-semibold bg-ink-700 hover:bg-ink-600 border border-emerald-400/15 transition">↺ Reload</button>
+        <button id="saveBtn" class="rounded-lg px-5 py-2 text-sm font-bold bg-neon-500 hover:bg-neon-400 text-ink-900 transition shadow-glow">💾 Save config</button>
+      </div>
+    </div>
+  </div>
+
+  <style>.lbl{font-size:11px;letter-spacing:.02em;color:rgba(110,231,168,.6);font-weight:600}</style>
+  <script>
+  // ---- tiny state + nested get/set ----
+  let STATE = {}, DEVICES = [];
+  const $ = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+  const getPath = (o,p)=>p.split('.').reduce((a,k)=>(a==null?undefined:a[k]),o);
+  const setPath = (o,p,v)=>{const ks=p.split('.');let a=o;for(let i=0;i<ks.length-1;i++){if(typeof a[ks[i]]!=='object'||a[ks[i]]==null)a[ks[i]]={};a=a[ks[i]];}a[ks[ks.length-1]]=v;};
+
+  function toast(msg, ok=true){const t=$('#toast');t.textContent=msg;t.style.color=ok?'#6ee7a8':'#fca5a5';t.style.opacity='1';setTimeout(()=>t.style.opacity='0',2600);}
+
+  // ---- tabs ----
+  $$('.navbtn').forEach(b=>b.onclick=()=>{
+    $$('.navbtn').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+    $$('[data-panel]').forEach(p=>p.classList.add('hidden'));
+    $(`[data-panel="${b.dataset.tab}"]`).classList.remove('hidden');
+  });
+
+  // ---- bind form <-> state ----
+  function fieldToState(el){
+    const p=el.dataset.path; if(!p)return; let v;
+    if(el.type==='checkbox')v=el.checked;
+    else if(el.dataset.kind){v=el.value===''?null:parseInt(el.value,10);} // device index -> int
+    else if(el.type==='number'){v=el.value===''?null:Number(el.value);}
+    else {v=el.value; if(v==='')v=el.dataset.path==='stt.language'?null:v;}
+    setPath(STATE,p,v);
+  }
+  function render(){
+    $$('[data-path]').forEach(el=>{
+      const v=getPath(STATE, el.dataset.path);
+      if(el.type==='checkbox')el.checked=!!v;
+      else el.value=(v==null?'':v);
+    });
+    $('#rawJson').value=JSON.stringify(STATE,null,2);
+  }
+  document.addEventListener('input',e=>{if(e.target.dataset&&e.target.dataset.path){fieldToState(e.target);$('#rawJson').value=JSON.stringify(STATE,null,2);}});
+
+  // ---- devices ----
+  async function loadDevices(){
+    try{const r=await fetch('/api/devices');const j=await r.json();DEVICES=j.devices||[];}catch(e){DEVICES=[];}
+    $$('select[data-kind]').forEach(sel=>{
+      const kind=sel.dataset.kind, cur=getPath(STATE,sel.dataset.path);
+      sel.innerHTML='<option value="">(system default)</option>'+DEVICES
+        .filter(d=>kind==='input'?d.max_input>0:d.max_output>0)
+        .map(d=>`<option value="${d.index}">[${d.index}] ${d.name}${d.hostapi?' · '+d.hostapi:''}</option>`).join('');
+      if(cur!=null)sel.value=cur;
+    });
+  }
+
+  // ---- dynamic Voice dropdown (depends on TTS provider) ----
+  const VOICE_LABEL={piper:'Voice (Piper model)',gtts:'Voice (language)',xtts:'Voice (speaker)'};
+  async function loadVoices(){
+    const provider=getPath(STATE,'tts.provider')||'piper';
+    const sel=$('#voiceSelect'), lbl=$('#voiceLbl');
+    lbl.textContent=VOICE_LABEL[provider]||'Voice';
+    $('#piperDl').style.display=(provider==='piper')?'':'none';
+    sel.innerHTML='<option>loading…</option>';sel.disabled=true;
+    let data={path:'tts.voice',voices:[]};
+    try{data=await (await fetch('/api/voices?provider='+encodeURIComponent(provider))).json();}catch(e){}
+    sel.dataset.path=data.path||'tts.voice';
+    const cur=getPath(STATE,sel.dataset.path);
+    sel.innerHTML=(data.voices||[]).map(v=>`<option value="${v.value}">${v.label}</option>`).join('');
+    if(cur!=null && [...sel.options].some(o=>o.value===String(cur)))sel.value=cur;
+    else if(sel.options.length){fieldToState(sel);} // adopt first as the value
+    sel.disabled=false;
+  }
+  $('#ttsProvider').addEventListener('change',loadVoices);
+
+  // ---- dynamic STT model dropdown (depends on engine) ----
+  async function loadSttModels(){
+    const provider=getPath(STATE,'stt.provider')||'faster-whisper';
+    const sel=$('#sttModel');
+    $('#whisperOnly').style.display=(provider==='vosk')?'none':'';
+    $('#sttModelLbl').textContent=(provider==='vosk')?'Vosk model':'Whisper model';
+    sel.innerHTML='<option>loading…</option>';sel.disabled=true;
+    let data={path:'stt.model',models:[]};
+    try{data=await (await fetch('/api/stt/models?provider='+encodeURIComponent(provider))).json();}catch(e){}
+    sel.dataset.path=data.path||'stt.model';
+    const cur=getPath(STATE,sel.dataset.path);
+    sel.innerHTML=(data.models||[]).map(m=>`<option value="${m.value}">${m.label}</option>`).join('');
+    if(cur!=null && [...sel.options].some(o=>o.value===String(cur)))sel.value=cur;
+    else if(sel.options.length){fieldToState(sel);}
+    sel.disabled=false;
+  }
+  $('#sttProvider').addEventListener('change',loadSttModels);
+  $('#sttDlBtn').onclick=async()=>{
+    const provider=getPath(STATE,'stt.provider')||'faster-whisper';
+    const status=$('#sttDlStatus'),btn=$('#sttDlBtn');
+    status.textContent='downloading… (first time can take a while)';btn.disabled=true;status.style.color='';
+    let url,body;
+    if(provider==='vosk'){url='/api/models/vosk';body={model:getPath(STATE,'stt.vosk.model')||'vosk-model-small-en-us-0.15'};}
+    else{url='/api/models/whisper';body={model:getPath(STATE,'stt.model')||'base'};}
+    try{const j=await (await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
+      status.textContent=j.ok?('ready ✓ '+(j.path||'')):('failed: '+j.error);status.style.color=j.ok?'#6ee7a8':'#fca5a5';
+    }catch(e){status.textContent='failed';}finally{btn.disabled=false;}
+  };
+
+  // ---- config load/save ----
+  async function loadConfig(){
+    const r=await fetch('/api/config');const j=await r.json();
+    STATE=j.config||{};$('#cfgPath').textContent='config source: '+(j.path||'');
+    render();await loadDevices();await loadVoices();await loadSttModels();
+  }
+  $('#saveBtn').onclick=async()=>{
+    try{const r=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:STATE})});
+      const j=await r.json();toast(j.ok?'Saved ✓':'Save failed: '+j.error,j.ok);}catch(e){toast('Save failed',false);}
+  };
+  $('#reloadBtn').onclick=loadConfig;
+  $('#applyJson').onclick=()=>{try{STATE=JSON.parse($('#rawJson').value);render();loadDevices();loadVoices();loadSttModels();toast('JSON applied ✓');}catch(e){toast('Invalid JSON',false);}};
+
+  // ---- model downloads ----
+  $$('.dlbtn').forEach(btn=>btn.onclick=async()=>{
+    const kind=btn.dataset.dl, status=$(`[data-dlstatus="${kind}"]`);
+    status.textContent='downloading… (first time can take a while)';btn.disabled=true;
+    try{
+      const body=kind==='piper'?{voice:getPath(STATE,'tts.voice')||'en_US-lessac-medium'}:{model:getPath(STATE,'stt.model')||'base'};
+      const r=await fetch(`/api/models/${kind}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      const j=await r.json();status.textContent=j.ok?('ready ✓ '+(j.path||'')):('failed: '+j.error);status.style.color=j.ok?'#6ee7a8':'#fca5a5';
+    }catch(e){status.textContent='failed';}finally{btn.disabled=false;}
+  });
+
+  // ---- bot control ----
+  async function refreshStatus(){
+    try{const j=await (await fetch('/api/bot/status')).json();
+      const run=j.running;$('#statusText').textContent=run?'running':'stopped';
+      $('#statusDot').className='h-2 w-2 rounded-full '+(run?'bg-neon-400 live-dot':'bg-zinc-500');
+      $('#statusPill').className='inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold border '+(run?'bg-neon-700/30 border-neon-400/40 text-neon-300':'bg-ink-700 border-emerald-400/15 text-emerald-300/70');
+    }catch(e){}
+  }
+  $('#startBtn').onclick=async()=>{await fetch('/api/bot/start',{method:'POST'});toast('Starting bot…');setTimeout(refreshStatus,800);};
+  $('#stopBtn').onclick=async()=>{await fetch('/api/bot/stop',{method:'POST'});toast('Stopping bot…');setTimeout(refreshStatus,600);};
+
+  loadConfig();refreshStatus();setInterval(refreshStatus,4000);
+  </script>
+</body>
+</html>

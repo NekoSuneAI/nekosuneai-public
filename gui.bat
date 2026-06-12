@@ -1,5 +1,5 @@
 @echo off
-REM NekoSuneAI (Python) launcher for Windows.
+REM Launch the NekoSuneAI setup GUI (web UI) on Windows.
 setlocal
 cd /d "%~dp0"
 
@@ -7,17 +7,13 @@ if not exist ".venv\" (
   echo [setup] Creating virtual environment...
   python -m venv .venv
   call .venv\Scripts\activate.bat
-  echo [setup] Installing requirements...
   python -m pip install --upgrade pip
   python -m pip install -r requirements.txt
 ) else (
   call .venv\Scripts\activate.bat
 )
 
-if not exist "config\config.json" (
-  echo [setup] No config\config.json found - copying example.
-  copy /Y "config\config.example.json" "config\config.json" >nul
-)
-
-python -m nekosuneai %*
+echo Opening setup at http://127.0.0.1:8730
+start "" "http://127.0.0.1:8730"
+python -m nekosuneai.gui %*
 endlocal

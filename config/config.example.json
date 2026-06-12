@@ -1,0 +1,101 @@
+{
+  "client_name": "NekoSuneAI",
+  "auto_install_models": true,
+
+  "vrchat": {
+    "osc_target_address": "127.0.0.1",
+    "osc_target_port": 9000,
+    "osc_read_port": 9001
+  },
+
+  "audio": {
+    "input_device": null,
+    "output_device": null,
+    "sample_rate": 16000,
+    "block_ms": 30,
+    "silence_threshold": 0.012,
+    "silence_hang_seconds": 1.0,
+    "min_speech_seconds": 0.4,
+    "max_utterance_seconds": 20.0,
+    "wait_sounds_dir": "data/wait_music",
+    "wait_sound_volume": 0.3
+  },
+
+  "stt": {
+    "provider": "faster-whisper",
+    "model": "base",
+    "device": "auto",
+    "compute_type": "int8",
+    "language": null,
+    "beam_size": 1,
+    "download_root": "",
+    "hf_token": "",
+    "vosk": {
+      "model": "vosk-model-small-en-us-0.15",
+      "models_dir": "models/vosk"
+    }
+  },
+
+  "tts": {
+    "provider": "piper",
+    "voice": "en_US-lessac-medium",
+    "gap_ms": 400,
+    "piper": {
+      "command": ["piper"],
+      "models_dir": "models/piper",
+      "use_cuda": false
+    },
+    "gtts": {
+      "lang": "en",
+      "tld": "com"
+    },
+    "xtts": {
+      "model": "tts_models/multilingual/multi-dataset/xtts_v2",
+      "speaker": "Ana Florence",
+      "speaker_wav": "",
+      "language": "en",
+      "use_cuda": false
+    }
+  },
+
+  "llm": {
+    "base_url": "http://127.0.0.1:11434/v1",
+    "api_key": "ollama",
+    "model": "qwen2.5:3b-instruct",
+    "system_message": "You are NekoSuneAI, a friendly catgirl AI hanging out in VRChat. Keep replies short, warm, and conversational - a couple of sentences at most, because they are shown in a small chatbox and read aloud. Never use markdown, emojis, or links.",
+    "memory_limit": 50,
+    "memory_idle_clear_minutes": 10,
+    "request_timeout": 120,
+    "max_tokens": 220,
+    "temperature": 0.8
+  },
+
+  "moderation": {
+    "enabled": true
+  },
+
+  "chatbox": {
+    "max_chars": 114,
+    "show_thinking": true,
+    "thinking_play_wait_sounds": true,
+    "wait_seconds": 60
+  },
+
+  "skills": {
+    "weather": {
+      "api_key": "",
+      "units": "metric"
+    },
+    "search": {
+      "base_url": "",
+      "max_results": 5,
+      "blocklist": ["news", "politics", "election", "government", "war", "religion"]
+    },
+    "jokes": {
+      "allow_explicit": false
+    },
+    "music": {
+      "enabled": true
+    }
+  }
+}

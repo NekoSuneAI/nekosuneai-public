@@ -1,0 +1,4 @@
+# OPTIONAL heavy TTS stack - Coqui XTTS v2 (voice cloning).
+# Only install this if you actually want XTTS. It pulls in PyTorch and is
+# NOT recommended for a potato laptop. Piper is the default for a reason.
+TTS>=0.22.0
